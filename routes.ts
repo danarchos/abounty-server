@@ -144,16 +144,3 @@ export const createInvoice = async (req: Request, res: Response) => {
     amount,
   });
 };
-
-export const testShit = async (req: Request, res: Response) => {
-  const { token } = req.body;
-  console.log("hit test", token);
-  const rpc = lightning.getRpc(token);
-  console.log("rpc", rpc.sendPaymentSync);
-  // const inv = await rpc.addInvoice({ value: amount.toString() });
-  // res.send({
-  //   payreq: inv.paymentRequest,
-  //   hash: (inv.rHash as Buffer).toString("base64"),
-  //   amount,
-  // });
-};
