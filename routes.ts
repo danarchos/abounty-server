@@ -54,7 +54,6 @@ export const postInvoice = async (req: Request, res: Response) => {
 
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
-  console.log("hit create invoice", token, amount);
   const rpc = lightning.getRpc(token);
   const inv = await rpc.addInvoice({ value: amount.toString() });
   res.send({

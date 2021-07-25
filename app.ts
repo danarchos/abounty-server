@@ -43,17 +43,17 @@ export const catchAsyncErrors = (
 //
 // Configure Routes
 //
-app.post("/api/create-invoice", catchAsyncErrors(routes.createInvoice));
+app.post("/create-invoice", catchAsyncErrors(routes.createInvoice));
 
 // from example app
-app.post("/api/connect", catchAsyncErrors(routes.connect));
-app.get("/api/info", catchAsyncErrors(routes.getInfo));
-app.post("/api/posts/:id/invoice", catchAsyncErrors(routes.postInvoice));
+app.post("/connect", catchAsyncErrors(routes.connect));
+app.get("/info", catchAsyncErrors(routes.getInfo));
+app.post("/posts/:id/invoice", catchAsyncErrors(routes.postInvoice));
 
 //
 // Configure Websocket
 //
-app.ws("/api/events", (ws) => {
+app.ws("/events", (ws) => {
   // when a websocket connection is made, add listeners for posts and invoices
   const postsListener = (posts: Post[]) => {
     const event = { type: SocketEvents.postUpdated, data: posts };
