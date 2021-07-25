@@ -73,26 +73,6 @@ class Supabase extends EventEmitter {
     return post;
   }
 
-  async upvotePost(postId: number) {
-    const post = this._data.posts.find((p) => p.id === postId);
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    post.votes++;
-    await this.persist();
-    this.emit(PostEvents.updated, post);
-  }
-
-  async verifyPost(postId: number) {
-    const post = this._data.posts.find((p) => p.id === postId);
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    post.verified = true;
-    await this.persist();
-    this.emit(PostEvents.updated, post);
-  }
-
   //
   // Nodes
   //
@@ -136,7 +116,6 @@ class Supabase extends EventEmitter {
     if (contents) {
       this._data = JSON.parse(contents.toString());
       if (!this._data.nodes) this._data.nodes = [];
-      console.log(`Loaded ${this._data.posts.length} posts`);
     }
   }
 }
