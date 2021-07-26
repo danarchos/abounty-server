@@ -1,12 +1,14 @@
 {
   "dependencies": {
     "@radar/lnrpc": "^0.11.1-beta.1",
+    "@supabase/supabase-js": "^1.21.0",
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/express-ws": "^3.0.1",
     "@types/node": "^16.4.2",
     "@types/uuid": "^8.3.1",
     "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
     "events": "^3.3.0",
     "express": "^4.17.1",
     "express-ws": "^5.0.2",

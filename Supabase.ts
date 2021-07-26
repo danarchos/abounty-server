@@ -1,6 +1,13 @@
 import { EventEmitter } from "events";
 import { existsSync, promises as fs } from "fs";
 import { Post } from "./types";
+import { createClient } from "@supabase/supabase-js";
+require("dotenv").config();
+
+const url = process.env.SUPABASE_URL ?? "";
+const key = process.env.SUPABASE_ANON_KEY ?? "";
+
+export const supabase = createClient(url, key);
 
 const DB_FILE = "db.json";
 
@@ -77,16 +84,24 @@ class Supabase extends EventEmitter {
   // Nodes
   //
 
+  async getAllSupaNodes() {
+    const nodes = await supabase.from("nodes");
+    return nodes.data;
+  }
   getAllNodes() {
     return this._data.nodes;
   }
 
-  getNodeByPubkey(pubkey: string) {
-    return this.getAllNodes().find((node) => node.pubkey === pubkey);
+  async getNodeByPubkey(pubkey: string) {
+    const allSupaData = await supabase.from("nodes");
+    const allNodes = allSupaData.data ?? [];
+    return allNodes.find((node) => node.pubkey === pubkey);
   }
 
-  getNodeByToken(token: string) {
-    return this.getAllNodes().find((node) => node.token === token);
+  async getNodeByToken(token: string) {
+    const allSupaData = await supabase.from("nodes");
+    const allNodes = allSupaData.data ?? [];
+    return allNodes.find((node) => node.token === token);
   }
 
   async addNode(node: LndNode) {

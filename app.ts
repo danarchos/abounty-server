@@ -3,8 +3,9 @@ import expressWs from "express-ws";
 import cors from "cors";
 import { Post, SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
-import db, { PostEvents } from "./Supabase";
+import db, { supabase, PostEvents } from "./Supabase";
 import * as routes from "./routes";
+require("dotenv").config();
 
 const PORT: number = 4000;
 
@@ -48,7 +49,9 @@ app.post("/create-invoice", catchAsyncErrors(routes.createInvoice));
 // from example app
 app.post("/connect", catchAsyncErrors(routes.connect));
 app.get("/info", catchAsyncErrors(routes.getInfo));
-app.post("/posts/:id/invoice", catchAsyncErrors(routes.postInvoice));
+
+// Test routes
+app.get("/test-get", catchAsyncErrors(routes.testGet));
 
 //
 // Configure Websocket
@@ -75,6 +78,8 @@ app.ws("/events", (ws) => {
     lightning.off(NodeEvents.invoicePaid, paymentsListener);
   });
 });
+
+// SUPABASE PLAYGROUND
 
 //
 // Start Server

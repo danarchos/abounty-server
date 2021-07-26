@@ -19,7 +19,7 @@ export const getInfo = async (req: Request, res: Response) => {
   const { token } = req.body;
   if (!token) throw new Error("Your node is not connected!");
   // find the node that's making the request
-  const node = db.getNodeByToken(token);
+  const node = await db.getNodeByToken(token);
   if (!node) throw new Error("Node not found with this token");
 
   // get the node's pubkey and alias
@@ -27,29 +27,6 @@ export const getInfo = async (req: Request, res: Response) => {
   const { alias, identityPubkey: pubkey } = await rpc.getInfo();
   const { balance } = await rpc.channelBalance();
   res.send({ alias, balance, pubkey });
-};
-
-/**
- * POST /api/posts/:id/invoice
- */
-export const postInvoice = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  // find the post
-  const post = db.getPostById(parseInt(id));
-  if (!post) throw new Error("Post not found");
-  // find the node that made this post
-  const node = db.getNodeByPubkey(post.pubkey);
-  if (!node) throw new Error("Node not found for this post");
-
-  // create an invoice on the poster's node
-  const rpc = lightning.getRpc(node.token);
-  const amount = 100;
-  const inv = await rpc.addInvoice({ value: amount.toString() });
-  res.send({
-    payreq: inv.paymentRequest,
-    hash: (inv.rHash as Buffer).toString("base64"),
-    amount,
-  });
 };
 
 export const createInvoice = async (req: Request, res: Response) => {
@@ -60,5 +37,16 @@ export const createInvoice = async (req: Request, res: Response) => {
     payreq: inv.paymentRequest,
     hash: (inv.rHash as Buffer).toString("base64"),
     amount,
+  });
+};
+
+export const testGet = async (req: Request, res: Response) => {
+  console.log("triggered testPost");
+  const node = await db.getNodeByPubkey(
+    "020086a2eadc25e6d742c4026dbf2b04760d03f73628fe596c3c659a8255f19ec8"
+  );
+  console.log({ node });
+  res.send({
+    node: node,
   });
 };
