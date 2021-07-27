@@ -1,15 +1,10 @@
 import { EventEmitter } from "events";
-import { existsSync, promises as fs } from "fs";
 import { Post } from "./types";
 import { createClient } from "@supabase/supabase-js";
 require("dotenv").config();
 
 const url = process.env.SUPABASE_URL ?? "";
 const key = process.env.SUPABASE_ANON_KEY ?? "";
-
-export const supabase = createClient(url, key);
-
-const DB_FILE = "db.json";
 
 export interface LndNode {
   token: string;
@@ -24,114 +19,39 @@ export interface DbData {
   nodes: LndNode[];
 }
 
-/**
- * The list of events emitted by the PostsDb
- */
 export const PostEvents = {
   updated: "post-updated",
 };
-
-/**
- * A very simple file-based DB to store the posts
- */
 class Supabase extends EventEmitter {
-  // in-memory database
-  private _data: DbData = {
-    posts: [],
-    nodes: [],
-  };
-
-  //
-  // Posts
-  //
-
-  getAllPosts() {
-    return this._data.posts.sort((a, b) => b.votes - a.votes);
-  }
-
-  getPostById(id: number) {
-    return this.getAllPosts().find((post) => post.id === id);
-  }
-
-  async createPost(
-    username: string,
-    title: string,
-    content: string,
-    signature: string,
-    pubkey: string
-  ) {
-    // calculate the highest numeric id
-    const maxId = Math.max(0, ...this._data.posts.map((p) => p.id));
-
-    const post: Post = {
-      id: maxId + 1,
-      title,
-      content,
-      username,
-      votes: 0,
-      signature,
-      pubkey,
-      verified: false,
-    };
-    this._data.posts.push(post);
-
-    await this.persist();
-    this.emit(PostEvents.updated, post);
-    return post;
-  }
-
-  //
-  // Nodes
-  //
+  private client = createClient(url, key);
 
   async getAllSupaNodes() {
-    const nodes = await supabase.from("nodes");
-    return nodes.data;
-  }
-  getAllNodes() {
-    return this._data.nodes;
+    const { data } = await this.client.from("nodes");
+    if (!data) return [];
+    return data;
   }
 
   async getNodeByPubkey(pubkey: string) {
-    const allSupaData = await supabase.from("nodes");
+    const allSupaData = await this.client.from("nodes");
     const allNodes = allSupaData.data ?? [];
     return allNodes.find((node) => node.pubkey === pubkey);
   }
 
   async getNodeByToken(token: string) {
-    const allSupaData = await supabase.from("nodes");
+    const allSupaData = await this.client.from("nodes");
     const allNodes = allSupaData.data ?? [];
     return allNodes.find((node) => node.token === token);
   }
 
   async addNode(node: LndNode) {
-    this._data.nodes = [
-      // add new node
-      node,
-      // exclude existing nodes with the same server
-      ...this._data.nodes.filter((n) => n.host !== node.host),
-    ];
-    await this.persist();
-  }
-
-  //
-  // HACK! Persist data to a JSON file to keep it when the server restarts.
-  // Do not do this in a production app. This is just for convenience when
-  // developing this sample app locally.
-  //
-
-  async persist() {
-    await fs.writeFile(DB_FILE, JSON.stringify(this._data, null, 2));
-  }
-
-  async restore() {
-    if (!existsSync(DB_FILE)) return;
-
-    const contents = await fs.readFile(DB_FILE);
-    if (contents) {
-      this._data = JSON.parse(contents.toString());
-      if (!this._data.nodes) this._data.nodes = [];
-    }
+    const { host, cert, macaroon, pubkey, token } = node;
+    await this.client.from("nodes").insert({
+      host,
+      cert,
+      macaroon,
+      pubkey,
+      token,
+    });
   }
 }
 

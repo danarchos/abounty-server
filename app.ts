@@ -3,7 +3,7 @@ import expressWs from "express-ws";
 import cors from "cors";
 import { Post, SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
-import db, { supabase, PostEvents } from "./Supabase";
+import db, { PostEvents } from "./Supabase";
 import * as routes from "./routes";
 require("dotenv").config();
 
@@ -89,6 +89,6 @@ app.listen(PORT, async () => {
   console.log(`API listening at http://localhost:${PORT}`);
 
   // Rehydrate data from the DB file
-  await db.restore();
-  await lightning.reconnectNodes(db.getAllNodes());
+  const allNodes = await db.getAllSupaNodes();
+  await lightning.reconnectNodes(allNodes);
 });

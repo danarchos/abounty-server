@@ -26,6 +26,7 @@ export const getInfo = async (req: Request, res: Response) => {
   const rpc = lightning.getRpc(node.token);
   const { alias, identityPubkey: pubkey } = await rpc.getInfo();
   const { balance } = await rpc.channelBalance();
+  console.log({ balance });
   res.send({ alias, balance, pubkey });
 };
 
