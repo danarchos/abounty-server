@@ -13,10 +13,6 @@ export interface LndNode {
   pubkey: string;
 }
 
-export const PostEvents = {
-  updated: "post-updated",
-};
-
 // Can use EventEmitter in future to emit an event.
 class Supabase extends EventEmitter {
   private client = createClient(url, key);
