@@ -1,5 +1,4 @@
 import { EventEmitter } from "events";
-import { Post } from "./types";
 import { createClient } from "@supabase/supabase-js";
 require("dotenv").config();
 
@@ -14,14 +13,11 @@ export interface LndNode {
   pubkey: string;
 }
 
-export interface DbData {
-  posts: Post[];
-  nodes: LndNode[];
-}
-
 export const PostEvents = {
   updated: "post-updated",
 };
+
+// Can use EventEmitter in future to emit an event.
 class Supabase extends EventEmitter {
   private client = createClient(url, key);
 

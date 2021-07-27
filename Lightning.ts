@@ -108,7 +108,9 @@ class Lightning extends EventEmitter {
   listenForPayments(rpc: LnRpc, pubkey: string) {
     const stream = rpc.subscribeInvoices();
     stream.on("data", (invoice) => {
+      console.log({ invoiceNotSettled: invoice });
       if (invoice.settled) {
+        console.log({ invoice });
         const hash = (invoice.rHash as Buffer).toString("base64");
         const amount = invoice.amtPaidSat;
         this.emit(NodeEvents.invoicePaid, { hash, amount, pubkey });

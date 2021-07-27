@@ -40,14 +40,3 @@ export const createInvoice = async (req: Request, res: Response) => {
     amount,
   });
 };
-
-export const testGet = async (req: Request, res: Response) => {
-  console.log("triggered testPost");
-  const node = await db.getNodeByPubkey(
-    "020086a2eadc25e6d742c4026dbf2b04760d03f73628fe596c3c659a8255f19ec8"
-  );
-  console.log({ node });
-  res.send({
-    node: node,
-  });
-};

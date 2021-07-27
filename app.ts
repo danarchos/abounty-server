@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
 import expressWs from "express-ws";
 import cors from "cors";
-import { Post, SocketEvents } from "./types";
+import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
-import db, { PostEvents } from "./Supabase";
+import db from "./Supabase";
 import * as routes from "./routes";
 require("dotenv").config();
 
@@ -50,18 +50,15 @@ app.post("/create-invoice", catchAsyncErrors(routes.createInvoice));
 app.post("/connect", catchAsyncErrors(routes.connect));
 app.get("/info", catchAsyncErrors(routes.getInfo));
 
-// Test routes
-app.get("/test-get", catchAsyncErrors(routes.testGet));
-
 //
 // Configure Websocket
 //
 app.ws("/events", (ws) => {
   // when a websocket connection is made, add listeners for posts and invoices
-  const postsListener = (posts: Post[]) => {
-    const event = { type: SocketEvents.postUpdated, data: posts };
-    ws.send(JSON.stringify(event));
-  };
+  // const postsListener = (posts: Post[]) => {
+  //   const event = { type: SocketEvents.postUpdated, data: posts };
+  //   ws.send(JSON.stringify(event));
+  // };
 
   const paymentsListener = (info: any) => {
     const event = { type: SocketEvents.invoicePaid, data: info };
@@ -69,19 +66,16 @@ app.ws("/events", (ws) => {
   };
 
   // add listeners to to send data over the socket
-  db.on(PostEvents.updated, postsListener);
+  // db.on(PostEvents.updated, postsListener);
   lightning.on(NodeEvents.invoicePaid, paymentsListener);
 
   // remove listeners when the socket is closed
   ws.on("close", () => {
-    db.off(PostEvents.updated, postsListener);
+    // db.off(PostEvents.updated, postsListener);
     lightning.off(NodeEvents.invoicePaid, paymentsListener);
   });
 });
 
-// SUPABASE PLAYGROUND
-
-//
 // Start Server
 //
 console.log("Starting API server...");
