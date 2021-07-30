@@ -13,6 +13,15 @@ export interface LndNode {
   pubkey: string;
 }
 
+export interface Bounty {
+  author: string;
+  subject: string;
+  heads: { username: string; confirmed: boolean };
+  expiry: Date;
+  created: Date;
+  tags: string[];
+}
+
 // Can use EventEmitter in future to emit an event.
 class Supabase extends EventEmitter {
   private client = createClient(url, key);
@@ -33,6 +42,25 @@ class Supabase extends EventEmitter {
     const allSupaData = await this.client.from("nodes");
     const allNodes = allSupaData.data ?? [];
     return allNodes.find((node) => node.token === token);
+  }
+
+  async getAllBounties() {
+    const { data } = await this.client.from("bounties");
+    if (!data) return [];
+    return data;
+  }
+
+  async createBounty(bounty: Bounty) {
+    const { author, subject, heads, expiry, created, tags } = bounty;
+    const response = await this.client.from("bounties").insert({
+      author,
+      subject,
+      heads,
+      expiry,
+      created,
+      tags,
+    });
+    return response;
   }
 
   async addNode(node: LndNode) {

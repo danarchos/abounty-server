@@ -4,7 +4,8 @@ import cors from "cors";
 import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
-import * as routes from "./routes";
+import * as lnRoutes from "./routes/lightningRoutes";
+import * as bountyRoutes from "./routes/bountyRoutes";
 require("dotenv").config();
 
 const PORT: number = 4000;
@@ -42,13 +43,19 @@ export const catchAsyncErrors = (
 };
 
 //
-// Configure Routes
+// Bounties
 //
-app.post("/create-invoice", catchAsyncErrors(routes.createInvoice));
+app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
+
+//
+// LN Routes
+//
+app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
 
 // from example app
-app.post("/connect", catchAsyncErrors(routes.connect));
-app.get("/info", catchAsyncErrors(routes.getInfo));
+app.post("/connect", catchAsyncErrors(lnRoutes.connect));
+app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 //
 // Configure Websocket

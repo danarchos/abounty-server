@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import lightning from "./Lightning";
-import db from "./Supabase";
+import lightning from "../Lightning";
+import db from "../Supabase";
 
 /**
  * POST /api/connect
