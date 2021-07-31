@@ -11,7 +11,7 @@ require("dotenv").config();
 const PORT: number = 4000;
 
 const { app } = expressWs(express());
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors());
 app.use(express.json());
 
 // simple middleware to grab the token from the header and add
@@ -51,7 +51,10 @@ app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 //
 // LN Routes
 //
-app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
+app.post(
+  "/create-bounty-invoice",
+  catchAsyncErrors(lnRoutes.createBountyInvoice)
+);
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));

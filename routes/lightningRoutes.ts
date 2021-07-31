@@ -30,6 +30,17 @@ export const getInfo = async (req: Request, res: Response) => {
   res.send({ alias, balance, pubkey });
 };
 
+export const createBountyInvoice = async (req: Request, res: Response) => {
+  const { token, amount } = req.body;
+  const rpc = lightning.getRpc(token);
+  const inv = await rpc.addInvoice({ value: amount.toString() });
+  res.send({
+    payreq: inv.paymentRequest,
+    hash: (inv.rHash as Buffer).toString("base64"),
+    amount,
+  });
+};
+
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
   const rpc = lightning.getRpc(token);
