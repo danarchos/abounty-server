@@ -6,9 +6,9 @@ import db from "../Supabase";
  * POST /api/connect
  */
 export const connect = async (req: Request, res: Response) => {
-  const { host, cert, macaroon } = req.body;
-  const { token, pubkey } = await lightning.connect(host, cert, macaroon);
-  await db.addNode({ host, cert, macaroon, token, pubkey });
+  const { host } = req.body;
+  const { token, pubkey } = await lightning.connect(host);
+  await db.addNode({ host, token, pubkey });
   res.send({ token });
 };
 
@@ -23,17 +23,19 @@ export const getInfo = async (req: Request, res: Response) => {
   if (!node) throw new Error("Node not found with this token");
 
   // get the node's pubkey and alias
-  const rpc = lightning.getRpc(node.token);
+  const rpc = lightning.getRpc();
   const { alias, identityPubkey: pubkey } = await rpc.getInfo();
   const { balance } = await rpc.channelBalance();
-  console.log({ balance });
   res.send({ alias, balance, pubkey });
 };
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
-  const { token, amount } = req.body;
-  const rpc = lightning.getRpc(token);
-  const inv = await rpc.addInvoice({ value: amount.toString() });
+  const { amount, userId, bountyId } = req.body;
+  const rpc = lightning.getRpc();
+  const inv = await rpc.addInvoice({
+    value: amount.toString(),
+    // memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
+  });
   res.send({
     payreq: inv.paymentRequest,
     hash: (inv.rHash as Buffer).toString("base64"),
@@ -43,7 +45,7 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
-  const rpc = lightning.getRpc(token);
+  const rpc = lightning.getRpc();
   const inv = await rpc.addInvoice({ value: amount.toString() });
   res.send({
     payreq: inv.paymentRequest,

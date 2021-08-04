@@ -8,18 +8,18 @@ const key = process.env.SUPABASE_ANON_KEY ?? "";
 export interface LndNode {
   token: string;
   host: string;
-  cert: string;
-  macaroon: string;
   pubkey: string;
 }
 
 export interface Bounty {
-  author: string;
   subject: string;
-  heads: { username: string; confirmed: boolean };
+  author: string;
+  speakers: { username: string; confirmed: boolean };
   expiry: Date;
+  description: string;
   created: Date;
   tags: string[];
+  active: boolean;
 }
 
 // Can use EventEmitter in future to emit an event.
@@ -51,24 +51,38 @@ class Supabase extends EventEmitter {
   }
 
   async createBounty(bounty: Bounty) {
-    const { author, subject, heads, expiry, created, tags } = bounty;
-    const response = await this.client.from("bounties").insert({
-      author,
+    const {
       subject,
-      heads,
+      speakers,
       expiry,
       created,
       tags,
+      active,
+      description,
+      author,
+    } = bounty;
+    const response = await this.client.from("bounties").insert({
+      subject,
+      speakers,
+      expiry,
+      created,
+      tags,
+      active,
+      description,
+      author,
     });
     return response;
   }
 
+  async getNode() {
+    const allSupaData = await this.client.from("nodes");
+    if (allSupaData?.data) return allSupaData.data[0] ?? null;
+  }
+
   async addNode(node: LndNode) {
-    const { host, cert, macaroon, pubkey, token } = node;
+    const { host, pubkey, token } = node;
     await this.client.from("nodes").insert({
       host,
-      cert,
-      macaroon,
       pubkey,
       token,
     });

@@ -13,28 +13,23 @@ class Lightning extends EventEmitter {
    * avoid calling `createLnRpc` on every request. Instead, the object is kept
    * in memory for the lifetime of the server.
    */
-  private _lndNodes: Record<string, LnRpc> = {};
+  private _lndNode: LnRpc | null = null;
 
   /**
    * Retrieves the in-memory connection to an LND node
    */
-  getRpc(token: string): LnRpc {
-    if (!this._lndNodes[token]) {
+  getRpc(): LnRpc {
+    if (!this._lndNode) {
       throw new Error("Not Authorized. You must login first!");
     }
 
-    return this._lndNodes[token];
+    return this._lndNode;
   }
 
   /**
    * Tests the LND node connection by validating that we can get the node's info
    */
-  async connect(
-    host: string,
-    cert: string,
-    macaroon: string,
-    prevToken?: string
-  ) {
+  async connect(host: string, prevToken?: string) {
     // generate a random token, without
     const token = prevToken || uuidv4().replace(/-/g, "");
 
@@ -42,8 +37,9 @@ class Lightning extends EventEmitter {
       // add the connection to the cache
       const rpc = await createLnRpc({
         server: host,
-        cert: Buffer.from(cert, "hex").toString("utf-8"), // utf8 encoded certificate
-        macaroon, // hex encoded macaroon
+        tls: "",
+        cert: "",
+        macaroonPath: "./admin.macaroon",
       });
 
       // verify we have permission get node info
@@ -69,14 +65,15 @@ class Lightning extends EventEmitter {
       this.listenForPayments(rpc, pubkey);
 
       // store this rpc connection in the in-memory list
-      this._lndNodes[token] = rpc;
+      this._lndNode = rpc;
 
       // return this node's token for future requests
+      console.log("connected", { pubkey });
       return { token, pubkey };
     } catch (err) {
       // remove the connection from the cache since it is not valid
-      if (this._lndNodes[token]) {
-        delete this._lndNodes[token];
+      if (this._lndNode) {
+        this._lndNode = null;
       }
       throw err;
     }
@@ -86,18 +83,23 @@ class Lightning extends EventEmitter {
    * Reconnect to all persisted nodes to to cache the `LnRpc` objects
    * @param nodes the list of nodes
    */
-  async reconnectNodes(nodes: LndNode[]) {
-    for (const node of nodes) {
-      const { host, cert, macaroon, token } = node;
-      try {
-        console.log(`Reconnecting to LND node ${host} for token ${token}`);
-        await this.connect(host, cert, macaroon, token);
-      } catch (error) {
-        // the token will not be cached
-        console.error(
-          `Failed to reconnect to LND node ${host} with token: ${token}`
-        );
-      }
+  async reconnectNode(nodes: LndNode[]) {
+    const node = process.env.NODE_PUBKEY;
+    const host = process.env.HOST;
+
+    if (!node || !host) {
+      console.error(`Failed to reconnect to LND node, couldn't find your node`);
+      return;
+    }
+
+    // const { host, token } = node;
+    // console.log({ host, token });
+    try {
+      console.log(`Reconnecting to LND node ${host}`);
+      await this.connect(host);
+    } catch (error) {
+      // the token will not be cached
+      console.error(`Failed to reconnect to LND node ${host}`);
     }
   }
 
@@ -105,12 +107,12 @@ class Lightning extends EventEmitter {
    * listen for payments made to the node. When a payment is settled, emit
    * the `invoicePaid` event to notify listeners of the NodeManager
    */
-  listenForPayments(rpc: LnRpc, pubkey: string) {
+  async listenForPayments(rpc: LnRpc, pubkey: string) {
     const stream = rpc.subscribeInvoices();
     stream.on("data", (invoice) => {
-      console.log({ invoiceNotSettled: invoice });
+      console.log({ invoice });
       if (invoice.settled) {
-        console.log({ invoice });
+        console.log("invoice settled", { invoice });
         const hash = (invoice.rHash as Buffer).toString("base64");
         const amount = invoice.amtPaidSat;
         this.emit(NodeEvents.invoicePaid, { hash, amount, pubkey });

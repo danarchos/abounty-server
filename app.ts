@@ -94,5 +94,5 @@ app.listen(PORT, async () => {
 
   // Rehydrate data from the DB file
   const allNodes = await db.getAllSupaNodes();
-  await lightning.reconnectNodes(allNodes);
+  await lightning.reconnectNode(allNodes);
 });
