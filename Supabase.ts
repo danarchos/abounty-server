@@ -13,13 +13,21 @@ export interface LndNode {
 
 export interface Bounty {
   subject: string;
-  author: string;
+  userId: string;
   speakers: { username: string; confirmed: boolean };
-  expiry: Date;
   description: string;
   created: Date;
   tags: string[];
   active: boolean;
+}
+
+export interface Payment {
+  paymentRequest: string | undefined;
+  value: string | undefined;
+  creationDate: string | undefined;
+  settleDate: string | undefined;
+  userId: string | undefined;
+  bountyId: string | undefined;
 }
 
 // Can use EventEmitter in future to emit an event.
@@ -51,16 +59,12 @@ class Supabase extends EventEmitter {
   }
 
   async createBounty(bounty: Bounty) {
-    const {
-      subject,
-      speakers,
-      expiry,
-      created,
-      tags,
-      active,
-      description,
-      author,
-    } = bounty;
+    const { subject, speakers, created, tags, active, description, userId } =
+      bounty;
+    const expiry = new Date();
+    console.log({ currentTime: new Date() });
+    expiry.setTime(expiry.getTime() + 60000);
+    console.log({ expiry });
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -69,7 +73,7 @@ class Supabase extends EventEmitter {
       tags,
       active,
       description,
-      author,
+      userId,
     });
     return response;
   }
@@ -86,6 +90,34 @@ class Supabase extends EventEmitter {
       pubkey,
       token,
     });
+  }
+
+  async addPayment(payment: Payment) {
+    const {
+      paymentRequest,
+      value,
+      creationDate,
+      settleDate,
+      userId,
+      bountyId,
+    } = payment;
+    console.log("called this", {
+      paymentRequest,
+      value,
+      creationDate,
+      settleDate,
+      userId,
+      bountyId,
+    });
+    const response = await this.client.from("payments").insert({
+      paymentRequest,
+      value,
+      creationDate,
+      settleDate,
+      userId,
+      bountyId,
+    });
+    console.log({ response });
   }
 }
 

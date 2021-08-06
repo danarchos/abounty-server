@@ -2,6 +2,7 @@ import createLnRpc, { LnRpc } from "@radar/lnrpc";
 import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
+import db from "./Supabase";
 
 export const NodeEvents = {
   invoicePaid: "invoice-paid",
@@ -110,9 +111,30 @@ class Lightning extends EventEmitter {
   async listenForPayments(rpc: LnRpc, pubkey: string) {
     const stream = rpc.subscribeInvoices();
     stream.on("data", (invoice) => {
-      console.log({ invoice });
+      console.log("invoice created");
       if (invoice.settled) {
-        console.log("invoice settled", { invoice });
+        console.log("payment recieved");
+
+        const { paymentRequest, value, creationDate, settleDate, memo } =
+          invoice;
+
+        let userId;
+        let bountyId;
+
+        if (memo) {
+          const json = JSON.parse(memo);
+          userId = json.userId;
+          bountyId = json.bountyId;
+        }
+
+        db.addPayment({
+          paymentRequest,
+          value,
+          creationDate,
+          settleDate,
+          userId,
+          bountyId,
+        });
         const hash = (invoice.rHash as Buffer).toString("base64");
         const amount = invoice.amtPaidSat;
         this.emit(NodeEvents.invoicePaid, { hash, amount, pubkey });

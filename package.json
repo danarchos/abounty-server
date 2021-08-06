@@ -19,5 +19,9 @@
   },
   "scripts": {
     "dev": "nodemon app.ts"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^2.0.4",
+    "node-cron": "^3.0.0"
   }
 }

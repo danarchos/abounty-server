@@ -2,18 +2,16 @@ import { Request, Response } from "express";
 import db from "../Supabase";
 
 export const createBounty = async (req: Request, res: Response) => {
-  const { author, description, subject, speakers, tags } = req.body;
+  const { userId, description, subject, speakers, tags } = req.body;
 
   const created = new Date();
-  const expiry = new Date();
-  expiry.setDate(expiry.getDate() + 30);
+
   const response = await db.createBounty({
     created,
     subject,
-    author,
+    userId,
     description,
     speakers,
-    expiry,
     tags,
     active: false,
   });

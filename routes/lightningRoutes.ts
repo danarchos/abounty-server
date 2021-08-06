@@ -34,7 +34,7 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
   const rpc = lightning.getRpc();
   const inv = await rpc.addInvoice({
     value: amount.toString(),
-    // memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
+    memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
   });
   res.send({
     payreq: inv.paymentRequest,
