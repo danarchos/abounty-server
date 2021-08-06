@@ -5,6 +5,7 @@ import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
 import cron from "node-cron";
+import moment from 'moment'
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 require("dotenv").config();
@@ -61,18 +62,10 @@ app.post(
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
+
 cron.schedule("* * * * *", async () => {
-  const bounties = await db.getAllBounties();
-  const currentTime = new Date();
-  console.log("Checking bounties for being expired at", currentTime);
-
-  console.log({ bounties });
-
-  const expiredBounties = bounties.filter(
-    (bounty) => currentTime > new Date(bounty.expiry)
-  );
-  console.log({ expiredBounties });
-
+  const expiredBounties = await db.expireBounties()
+  console.log({ response })
   
 });
 

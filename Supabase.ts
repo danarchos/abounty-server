@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { createClient } from "@supabase/supabase-js";
+import moment from "moment";
 require("dotenv").config();
 
 const url = process.env.SUPABASE_URL ?? "";
@@ -58,20 +59,32 @@ class Supabase extends EventEmitter {
     return data;
   }
 
+  async getAllExpiredBounties() {
+    const currentTime = moment().unix()
+    const { data } = await this.client.from("bounties").select('id').lte('expiry', currentTime);
+    if (!data) return [];
+    return data;
+  }
+
+  async expireBounties() {
+    const currentTime = moment().unix()
+    const { data } = await this.client.from("bounties")
+      .update({ status: 'EXPIRED' })
+      .match({ status: 'OPEN' })
+      .lte('expiry', currentTime);
+    return data;
+  }
+
+
   async createBounty(bounty: Bounty) {
-    const { subject, speakers, created, tags, active, description, userId } =
+    const { subject, speakers, tags, active, description, userId } =
       bounty;
-    const expiry = new Date();
-    console.log({ currentTime: new Date() });
-    expiry.setTime(expiry.getTime() + 60000);
-    console.log({ expiry });
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
-      expiry,
-      created,
+      expiry: moment().unix() + 100,
+      created: moment().unix(),
       tags,
-      active,
       description,
       userId,
     });
