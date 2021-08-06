@@ -104,6 +104,11 @@ class Lightning extends EventEmitter {
     }
   }
 
+  // async refundBounties(expiredBounties: any) {
+  //   const wosPubkey = "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226"
+
+  // }
+
   /**
    * listen for payments made to the node. When a payment is settled, emit
    * the `invoicePaid` event to notify listeners of the NodeManager

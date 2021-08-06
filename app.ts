@@ -58,14 +58,20 @@ app.post(
   catchAsyncErrors(lnRoutes.createBountyInvoice)
 );
 
+app.post(
+  "/send-keysend",
+  catchAsyncErrors(lnRoutes.sendKeysend)
+);
+
+
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 
 cron.schedule("* * * * *", async () => {
-  const expiredBounties = await db.expireBounties()
-  console.log({ response })
+  // const expiredBounties = await db.expireBounties()
+  // const response = await lightning.refundBounties(expiredBounties)
   
 });
 

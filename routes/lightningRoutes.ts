@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import lightning from "../Lightning";
 import db from "../Supabase";
-
+import crypto from 'crypto'
+import ByteBuffer from 'bytebuffer'
+import sha from 'js-sha256';
 /**
  * POST /api/connect
  */
@@ -42,6 +44,27 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
     amount,
   });
 };
+
+export const sendKeysend = async (req: Request, res: Response) => {
+  // const { pubkey } = req.body;
+  const randoStr = crypto.randomBytes(32).toString('hex');
+  const preimage = ByteBuffer.fromHex(randoStr);
+  console.log('hit')
+  const pubkey = "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226"
+  const rpc = lightning.getRpc();
+  try {
+    const res = await rpc.sendPaymentSync({ 
+      dest: Buffer.from(pubkey, 'base64'),
+      amt: '200',
+      paymentHash: Buffer.from(randoStr, 'base64'),
+      // destFeatures: [9],
+    })
+    console.log('res', res)
+  } catch (err) {
+    console.log('err', err)
+  }
+  res.send({ ok: 'ok'})
+}
 
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
