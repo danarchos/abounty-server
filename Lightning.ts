@@ -1,4 +1,4 @@
-import createLnRpc, { LnRpc } from "@radar/lnrpc";
+import createLnRpc, { createRouterRpc, LnRpc, RouterRpc } from "@radar/lnrpc";
 import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
@@ -14,17 +14,29 @@ class Lightning extends EventEmitter {
    * avoid calling `createLnRpc` on every request. Instead, the object is kept
    * in memory for the lifetime of the server.
    */
-  private _lndNode: LnRpc | null = null;
+  private lnRpc: LnRpc | null = null;
+  private routerRpc: RouterRpc | null = null;
 
   /**
    * Retrieves the in-memory connection to an LND node
    */
-  getRpc(): LnRpc {
-    if (!this._lndNode) {
+  getLnRpc(): LnRpc {
+    if (!this.lnRpc) {
       throw new Error("Not Authorized. You must login first!");
     }
 
-    return this._lndNode;
+    return this.lnRpc;
+  }
+
+  /**
+   * Retrieves the in-memory connection to an LND node
+   */
+  getRouterRpc(): RouterRpc {
+    if (!this.routerRpc) {
+      throw new Error("Not Authorized. You must login first!");
+    }
+
+    return this.routerRpc;
   }
 
   /**
@@ -34,47 +46,51 @@ class Lightning extends EventEmitter {
     // generate a random token, without
     const token = prevToken || uuidv4().replace(/-/g, "");
 
+    const config = {
+      server: host,
+      tls: "",
+      cert: "",
+      macaroonPath: "./admin.macaroon",
+    };
+
     try {
       // add the connection to the cache
-      const rpc = await createLnRpc({
-        server: host,
-        tls: "",
-        cert: "",
-        macaroonPath: "./admin.macaroon",
-      });
+      const lnRpc = await createLnRpc(config);
+      const routerRpc = await createRouterRpc(config);
 
       // verify we have permission get node info
-      const { identityPubkey: pubkey } = await rpc.getInfo();
+      const { identityPubkey: pubkey } = await lnRpc.getInfo();
 
       // verify we have permission to get channel balances
-      await rpc.channelBalance();
+      await lnRpc.channelBalance();
 
       // verify we can sign a message
       const msg = Buffer.from("authorization test").toString("base64");
-      const { signature } = await rpc.signMessage({ msg });
+      const { signature } = await lnRpc.signMessage({ msg });
 
       // verify we have permission to verify a message
-      await rpc.verifyMessage({ msg, signature });
+      await lnRpc.verifyMessage({ msg, signature });
 
       // verify we have permissions to create a 1sat invoice
-      const { rHash } = await rpc.addInvoice({ value: "1" });
+      const { rHash } = await lnRpc.addInvoice({ value: "1" });
 
       // verify we have permission to lookup invoices
-      await rpc.lookupInvoice({ rHash });
+      await lnRpc.lookupInvoice({ rHash });
 
       // listen for payments from LND
-      this.listenForPayments(rpc, pubkey);
+      this.listenForPayments(lnRpc, pubkey);
 
       // store this rpc connection in the in-memory list
-      this._lndNode = rpc;
+      this.lnRpc = lnRpc;
+      this.routerRpc = routerRpc;
 
-      // return this node's token for future requests
       console.log("connected", { pubkey });
+      // return this node's token for future requests
       return { token, pubkey };
     } catch (err) {
       // remove the connection from the cache since it is not valid
-      if (this._lndNode) {
-        this._lndNode = null;
+      if (this.lnRpc) {
+        this.lnRpc = null;
       }
       throw err;
     }

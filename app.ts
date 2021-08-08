@@ -5,7 +5,7 @@ import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
 import cron from "node-cron";
-import moment from 'moment'
+import moment from "moment";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 require("dotenv").config();
@@ -58,21 +58,15 @@ app.post(
   catchAsyncErrors(lnRoutes.createBountyInvoice)
 );
 
-app.post(
-  "/send-keysend",
-  catchAsyncErrors(lnRoutes.sendKeysend)
-);
-
+app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
-
 cron.schedule("* * * * *", async () => {
   // const expiredBounties = await db.expireBounties()
   // const response = await lightning.refundBounties(expiredBounties)
-  
 });
 
 //

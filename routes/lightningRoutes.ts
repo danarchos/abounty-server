@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import lightning from "../Lightning";
 import db from "../Supabase";
-import crypto from 'crypto'
-import ByteBuffer from 'bytebuffer'
-import sha from 'js-sha256';
+import crypto from "crypto";
+import ByteBuffer from "bytebuffer";
+import sha from "js-sha256";
 /**
  * POST /api/connect
  */
@@ -25,7 +25,7 @@ export const getInfo = async (req: Request, res: Response) => {
   if (!node) throw new Error("Node not found with this token");
 
   // get the node's pubkey and alias
-  const rpc = lightning.getRpc();
+  const rpc = lightning.getLnRpc();
   const { alias, identityPubkey: pubkey } = await rpc.getInfo();
   const { balance } = await rpc.channelBalance();
   res.send({ alias, balance, pubkey });
@@ -33,7 +33,7 @@ export const getInfo = async (req: Request, res: Response) => {
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
   const { amount, userId, bountyId } = req.body;
-  const rpc = lightning.getRpc();
+  const rpc = lightning.getLnRpc();
   const inv = await rpc.addInvoice({
     value: amount.toString(),
     memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
@@ -47,28 +47,39 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 
 export const sendKeysend = async (req: Request, res: Response) => {
   // const { pubkey } = req.body;
-  const randoStr = crypto.randomBytes(32).toString('hex');
+  const randoStr = crypto.randomBytes(32).toString("hex");
   const preimage = ByteBuffer.fromHex(randoStr);
-  console.log('hit')
-  const pubkey = "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226"
-  const rpc = lightning.getRpc();
+  console.log("hit");
+  const wosPub =
+    "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
+  const muunPub =
+    "03d831eb02996b2e0eda05d01a3f17d998f620a9c842f28fa75ca028aab8d103e7";
+  const rpc = lightning.getRouterRpc();
   try {
-    const res = await rpc.sendPaymentSync({ 
-      dest: Buffer.from(pubkey, 'base64'),
-      amt: '200',
-      paymentHash: Buffer.from(randoStr, 'base64'),
+    const resoo = await rpc.sendPaymentV2({
+      dest: Buffer.from(wosPub, "hex"),
+      // dest: Buffer.from(muunPub, "base64"),
+      amt: 100,
+      allowSelfPayment: true,
+      timeoutSeconds: 16,
       // destFeatures: [9],
-    })
-    console.log('res', res)
+      feeLimitSat: 20,
+      paymentHash: preimage.toBuffer(),
+    });
+
+    // console.log(resoo);
+
+    // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
+    res.send({ ok: "ok" });
   } catch (err) {
-    console.log('err', err)
+    console.log("err", err);
+    res.send({ ok: false });
   }
-  res.send({ ok: 'ok'})
-}
+};
 
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
-  const rpc = lightning.getRpc();
+  const rpc = lightning.getLnRpc();
   const inv = await rpc.addInvoice({ value: amount.toString() });
   res.send({
     payreq: inv.paymentRequest,
