@@ -47,9 +47,9 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 
 export const sendKeysend = async (req: Request, res: Response) => {
   // const { pubkey } = req.body;
-  const randoStr = crypto.randomBytes(32).toString("hex");
-  const preimage = ByteBuffer.fromHex(randoStr);
-  console.log("hit");
+  const randoStr = crypto.randomBytes(32).toString("base64");
+  // const preimage = Buffer.from(randostr).toString('base64')
+  console.log(new Blob([randoStr]).size);
   const wosPub =
     "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
   const muunPub =
@@ -64,13 +64,13 @@ export const sendKeysend = async (req: Request, res: Response) => {
       timeoutSeconds: 16,
       // destFeatures: [9],
       feeLimitSat: 20,
-      paymentHash: preimage.toBuffer(),
+      paymentHash: Buffer.from(randoStr, "hex"),
     });
 
-    // console.log(resoo);
+    console.log(resoo);
 
     // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
-    res.send({ ok: "ok" });
+    res.send({ ok: true });
   } catch (err) {
     console.log("err", err);
     res.send({ ok: false });
