@@ -60,11 +60,13 @@ export const sendKeysend = async (req: Request, res: Response) => {
   const rpc = lightning.getRouterRpc();
   try {
     const response = await rpc.sendPaymentV2({
-      dest: Buffer.from(wosPub, "hex"),
+      dest: Buffer.from(myWosPub, "hex"),
       amt: 210,
       allowSelfPayment: true,
       timeoutSeconds: 30,
       paymentHash: crypto.randomBytes(32).toString("base64"),
+      // this needs to be the premiage
+      destCustomRecords: [[123, Buffer.from(myWosPub, "hex")]],
     });
 
     console.log({ response });
