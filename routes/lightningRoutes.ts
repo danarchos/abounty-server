@@ -47,8 +47,8 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 
 export const sendKeysend = async (req: Request, res: Response) => {
   // const { pubkey } = req.body;
-  const randoStr = crypto.randomBytes(32).toString("base64");
-  // const preimage = Buffer.from(randostr).toString('base64')
+  // const randoStr = crypto.randomBytes(32).toString("base64");
+  const preimage = crypto.randomBytes(32);
   const myWosPub =
     "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
   const wosPub =
@@ -58,15 +58,16 @@ export const sendKeysend = async (req: Request, res: Response) => {
   const selfPubkey =
     "03d805d0c6ad3306441c8e8c076cdcaa9a13064ed606376282cd1154c1ab0ed9ae";
   const rpc = lightning.getRouterRpc();
+
+  // const preim/age =
   try {
     const response = await rpc.sendPaymentV2({
       dest: Buffer.from(myWosPub, "hex"),
       amt: 210,
       allowSelfPayment: true,
       timeoutSeconds: 30,
-      paymentHash: crypto.randomBytes(32).toString("base64"),
-      // this needs to be the premiage
-      destCustomRecords: [[123, Buffer.from(myWosPub, "hex")]],
+      paymentHash: preimage.toString("base64"),
+      destCustomRecords: [[5482373484, Buffer.from(preimage)]],
     });
 
     console.log({ response });
