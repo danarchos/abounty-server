@@ -10,10 +10,7 @@ const keysendKey = 5482373484;
  * POST /api/connect
  */
 export const connect = async (req: Request, res: Response) => {
-  const { host } = req.body;
-  await lightning.connect(host);
-  // await db.addNode({ host, token, pubkey });
-  res.send({ yeah: "yeah" });
+  await lightning.connect();
 };
 
 /**
@@ -27,7 +24,7 @@ export const getInfo = async (req: Request, res: Response) => {
   if (!node) throw new Error("Node not found with this token");
 
   // get the node's pubkey and alias
-  const rpc = lightning.getLnRpc();
+  const rpc = lightning.getLnd();
   const { alias, identityPubkey: pubkey } = await rpc.getInfo();
   const { balance } = await rpc.channelBalance();
   res.send({ alias, balance, pubkey });
@@ -35,7 +32,7 @@ export const getInfo = async (req: Request, res: Response) => {
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
   const { amount, userId, bountyId } = req.body;
-  const rpc = lightning.getLnRpc();
+  const rpc = lightning.getLnd();
   const inv = await rpc.addInvoice({
     value: amount.toString(),
     memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
@@ -59,32 +56,32 @@ export const sendKeysend = async (req: Request, res: Response) => {
     "03d831eb02996b2e0eda05d01a3f17d998f620a9c842f28fa75ca028aab8d103e7";
   const selfPubkey =
     "03d805d0c6ad3306441c8e8c076cdcaa9a13064ed606376282cd1154c1ab0ed9ae";
-  const rpc = lightning.getRouterRpc();
+  // const rpc = lightning.get();
 
   // const preim/age =
-  try {
-    const response = await rpc.sendPaymentV2({
-      dest: Buffer.from(myWosPub, "hex"),
-      amt: 210,
-      allowSelfPayment: true,
-      timeoutSeconds: 30,
-      paymentHash: preimage.toString("base64"),
-      destCustomRecords: [[5482373484, Buffer.from(preimage)]],
-    });
+  // try {
+  //   const response = await rpc.sendPaymentV2({
+  //     dest: Buffer.from(myWosPub, "hex"),
+  //     amt: 210,
+  //     allowSelfPayment: true,
+  //     timeoutSeconds: 30,
+  //     paymentHash: preimage.toString("base64"),
+  //     destCustomRecords: [[5482373484, Buffer.from(preimage)]],
+  //   });
 
-    console.log({ response });
+  //   console.log({ response });
 
-    // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
-    res.send({ ok: true });
-  } catch (err) {
-    console.log("err", err);
-    res.send({ ok: false });
-  }
+  //   // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
+  //   res.send({ ok: true });
+  // } catch (err) {
+  //   console.log("err", err);
+  //   res.send({ ok: false });
+  // }
 };
 
 export const createInvoice = async (req: Request, res: Response) => {
   const { token, amount } = req.body;
-  const rpc = lightning.getLnRpc();
+  const rpc = lightning.getLnd();
   const inv = await rpc.addInvoice({ value: amount.toString() });
   res.send({
     payreq: inv.paymentRequest,
