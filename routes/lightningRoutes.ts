@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import lightning from "../Lightning";
 import db from "../Supabase";
-import crypto from "crypto";
+import { createHash, randomBytes } from "crypto";
 import ByteBuffer from "bytebuffer";
 import sha, { sha256 } from "js-sha256";
 /**
@@ -48,29 +48,33 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 export const sendKeysend = async (req: Request, res: Response) => {
   // const { pubkey } = req.body;
   // const randoStr = crypto.randomBytes(32).toString("base64");
-  const preimage = crypto.randomBytes(32);
   const myWosPub =
     "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
   const wosPub =
     "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
   const muunPubkey =
     "03d831eb02996b2e0eda05d01a3f17d998f620a9c842f28fa75ca028aab8d103e7";
-  const selfPubkey =
+  const pubkey =
     "03d805d0c6ad3306441c8e8c076cdcaa9a13064ed606376282cd1154c1ab0ed9ae";
   const rpc = lightning.getRouterRpc();
 
   // const preim/age =
   try {
-    const response = await rpc.sendPaymentV2({
-      dest: Buffer.from(myWosPub, "hex"),
+    const preimage = randomBytes(32);
+    const id = createHash("sha256").update(preimage).digest().toString("hex");
+    const secret = preimage.toString("hex");
+    const keySendPreimageType = "5482373484";
+    await rpc.sendPaymentV2({
+      dest: Buffer.from(pubkey, "hex"),
       amt: 210,
       allowSelfPayment: true,
-      timeoutSeconds: 30,
-      paymentHash: preimage.toString("base64"),
-      destCustomRecords: [[5482373484, Buffer.from(preimage)]],
+      timeoutSeconds: 3000,
+      paymentHash: Buffer.from(id, "hex"),
+      // @ts-ignore
+      destCustomRecords: [`{type: ${keySendPreimageType}, value: ${secret}}`],
     });
 
-    console.log({ response });
+    // console.log({ response });
 
     // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
     res.send({ ok: true });
