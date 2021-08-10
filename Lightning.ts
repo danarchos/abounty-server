@@ -98,8 +98,8 @@ class Lightning extends EventEmitter {
 
     try {
       const { lnd } = await lightning.authenticatedLndGrpc({
-        cert: "./base64-tls.cert",
-        macaroon: "./base64-admin.macaroon",
+        // cert: process.env.TLS_CERT,
+        macaroon: process.env.MACAROON,
         socket: process.env.HOST,
       });
 
@@ -110,7 +110,7 @@ class Lightning extends EventEmitter {
       });
       console.log({ signature });
     } catch (err) {
-      console.log({ err: err[2] });
+      console.log({ err });
     }
 
     return;
