@@ -4,14 +4,16 @@ import db from "../Supabase";
 import crypto from "crypto";
 import ByteBuffer from "bytebuffer";
 import sha, { sha256 } from "js-sha256";
+
+const keysendKey = 5482373484;
 /**
  * POST /api/connect
  */
 export const connect = async (req: Request, res: Response) => {
   const { host } = req.body;
-  const { token, pubkey } = await lightning.connect(host);
-  await db.addNode({ host, token, pubkey });
-  res.send({ token });
+  await lightning.connect(host);
+  // await db.addNode({ host, token, pubkey });
+  res.send({ yeah: "yeah" });
 };
 
 /**

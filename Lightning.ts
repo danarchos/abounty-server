@@ -3,6 +3,7 @@ import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
 import db from "./Supabase";
+import * as lightning from "lightning";
 
 export const NodeEvents = {
   invoicePaid: "invoice-paid",
@@ -44,56 +45,75 @@ class Lightning extends EventEmitter {
    */
   async connect(host: string, prevToken?: string) {
     // generate a random token, without
-    const token = prevToken || uuidv4().replace(/-/g, "");
+    // const token = prevToken || uuidv4().replace(/-/g, "");
 
-    const config = {
-      server: host,
-      tls: "",
-      cert: "",
-      macaroonPath: "./admin.macaroon",
-    };
+    // const config = {
+    //   server: host,
+    //   tls: "",
+    //   cert: "",
+    //   macaroonPath: "./admin.macaroon",
+    // };
+
+    // try {
+    //   // add the connection to the cache
+    //   const lnRpc = await createLnRpc(config);
+    //   const routerRpc = await createRouterRpc(config);
+
+    //   // verify we have permission get node info
+    //   const { identityPubkey: pubkey } = await lnRpc.getInfo();
+
+    //   // verify we have permission to get channel balances
+    //   await lnRpc.channelBalance();
+
+    //   // verify we can sign a message
+    //   const msg = Buffer.from("authorization test").toString("base64");
+    //   const { signature } = await lnRpc.signMessage({ msg });
+
+    //   // verify we have permission to verify a message
+    //   await lnRpc.verifyMessage({ msg, signature });
+
+    //   // verify we have permissions to create a 1sat invoice
+    //   const { rHash } = await lnRpc.addInvoice({ value: "1" });
+
+    //   // verify we have permission to lookup invoices
+    //   await lnRpc.lookupInvoice({ rHash });
+
+    //   // listen for payments from LND
+    //   this.listenForPayments(lnRpc, pubkey);
+
+    //   // store this rpc connection in the in-memory list
+    //   this.lnRpc = lnRpc;
+    //   this.routerRpc = routerRpc;
+
+    //   console.log("connected", { pubkey });
+    //   // return this node's token for future requests
+    //   return { token, pubkey };
+    // } catch (err) {
+    //   // remove the connection from the cache since it is not valid
+    //   if (this.lnRpc) {
+    //     this.lnRpc = null;
+    //   }
+    //   throw err;
+    // }
 
     try {
-      // add the connection to the cache
-      const lnRpc = await createLnRpc(config);
-      const routerRpc = await createRouterRpc(config);
+      const { lnd } = await lightning.authenticatedLndGrpc({
+        cert: "./base64-tls.cert",
+        macaroon: "./base64-admin.macaroon",
+        socket: process.env.HOST,
+      });
 
-      // verify we have permission get node info
-      const { identityPubkey: pubkey } = await lnRpc.getInfo();
-
-      // verify we have permission to get channel balances
-      await lnRpc.channelBalance();
-
-      // verify we can sign a message
       const msg = Buffer.from("authorization test").toString("base64");
-      const { signature } = await lnRpc.signMessage({ msg });
-
-      // verify we have permission to verify a message
-      await lnRpc.verifyMessage({ msg, signature });
-
-      // verify we have permissions to create a 1sat invoice
-      const { rHash } = await lnRpc.addInvoice({ value: "1" });
-
-      // verify we have permission to lookup invoices
-      await lnRpc.lookupInvoice({ rHash });
-
-      // listen for payments from LND
-      this.listenForPayments(lnRpc, pubkey);
-
-      // store this rpc connection in the in-memory list
-      this.lnRpc = lnRpc;
-      this.routerRpc = routerRpc;
-
-      console.log("connected", { pubkey });
-      // return this node's token for future requests
-      return { token, pubkey };
+      const { signature } = await lightning.signMessage({
+        lnd,
+        message: msg,
+      });
+      console.log({ signature });
     } catch (err) {
-      // remove the connection from the cache since it is not valid
-      if (this.lnRpc) {
-        this.lnRpc = null;
-      }
-      throw err;
+      console.log({ err: err[2] });
     }
+
+    return;
   }
 
   /**
