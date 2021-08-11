@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import lightning from "../Lightning";
+import ln from "../Lightning";
 import db from "../Supabase";
 import crypto from "crypto";
 import ByteBuffer from "bytebuffer";
+import * as lightning from "lightning";
 import sha, { sha256 } from "js-sha256";
 
 const keysendKey = 5482373484;
@@ -10,7 +11,7 @@ const keysendKey = 5482373484;
  * POST /api/connect
  */
 export const connect = async (req: Request, res: Response) => {
-  await lightning.connect();
+  await ln.connect();
 };
 
 /**
@@ -24,22 +25,25 @@ export const getInfo = async (req: Request, res: Response) => {
   if (!node) throw new Error("Node not found with this token");
 
   // get the node's pubkey and alias
-  const rpc = lightning.getLnd();
-  const { alias, identityPubkey: pubkey } = await rpc.getInfo();
-  const { balance } = await rpc.channelBalance();
-  res.send({ alias, balance, pubkey });
+  // const lnd = ln.getLnd();
+  // const { alias, identityPubkey: pubkey } = await rpc.getInfo();
+  // const { balance } = await lnd.channelBalance();
+  // res.send({ alias, balance, pubkey });
 };
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
   const { amount, userId, bountyId } = req.body;
-  const rpc = lightning.getLnd();
-  const inv = await rpc.addInvoice({
-    value: amount.toString(),
-    memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
-  });
+  const lnd = ln.getLnd();
+
+  const inv = await lightning.createInvoice({ lnd, tokens: amount });
+  // const inv = await lightning.createInvoice({
+  //   value: amount.toString(),
+  //   memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
+  // });
+
   res.send({
-    payreq: inv.paymentRequest,
-    hash: (inv.rHash as Buffer).toString("base64"),
+    payreq: (await inv).request,
+    hash: inv.id,
     amount,
   });
 };
@@ -80,12 +84,14 @@ export const sendKeysend = async (req: Request, res: Response) => {
 };
 
 export const createInvoice = async (req: Request, res: Response) => {
-  const { token, amount } = req.body;
-  const rpc = lightning.getLnd();
-  const inv = await rpc.addInvoice({ value: amount.toString() });
+  console.log("hit");
+  const { amount } = req.body;
+  const lnd = ln.getLnd();
+  const inv = await lightning.createInvoice({ lnd, tokens: amount });
+  console.log({ inv });
   res.send({
-    payreq: inv.paymentRequest,
-    hash: (inv.rHash as Buffer).toString("base64"),
-    amount,
+    payreq: inv.request,
+    hash: inv.id,
+    amount: inv.tokens,
   });
 };

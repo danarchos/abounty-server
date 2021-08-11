@@ -105,13 +105,19 @@ class Lightning extends EventEmitter {
       });
 
       const msg = Buffer.from("authorization test").toString("base64");
-      const { signature } = await lightning.signMessage({
+
+      // Verifiy I can sign a message
+      await lightning.signMessage({
         lnd,
         message: msg,
       });
-      console.log({ signature });
 
+      // Get the public key
       const { public_key } = await lightning.getIdentity({ lnd });
+
+      console.log({ connected: public_key });
+
+      this.lnd = lnd;
       this.pubkey = public_key;
 
       this.listenForPayments(lnd, public_key);

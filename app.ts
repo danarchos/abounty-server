@@ -47,8 +47,8 @@ export const catchAsyncErrors = (
 //
 // Bounties
 //
-app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
-app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
+// app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+// app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 
 //
 // LN Routes
@@ -58,11 +58,13 @@ app.post(
   catchAsyncErrors(lnRoutes.createBountyInvoice)
 );
 
-app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
+app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
+
+// app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
-app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
+// app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 cron.schedule("* * * * *", async () => {
   // const expiredBounties = await db.expireBounties()
