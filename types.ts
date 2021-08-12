@@ -1,3 +1,3 @@
 export const SocketEvents = {
-  invoicePaid: "invoice-paid",
+  invoiceUpdated: "invoice-updated",
 };

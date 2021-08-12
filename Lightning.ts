@@ -32,72 +32,9 @@ class Lightning extends EventEmitter {
   }
 
   /**
-   * Retrieves the in-memory connection to an LND node
-   */
-  // getRouterRpc(): RouterRpc {
-  //   if (!this.routerRpc) {
-  //     throw new Error("Not Authorized. You must login first!");
-  //   }
-
-  //   return this.routerRpc;
-  // }
-
-  /**
    * Tests the LND node connection by validating that we can get the node's info
    */
   async connect() {
-    // generate a random token, without
-    // const token = prevToken || uuidv4().replace(/-/g, "");
-
-    // const config = {
-    //   server: host,
-    //   tls: "",
-    //   cert: "",
-    //   macaroonPath: "./admin.macaroon",
-    // };
-
-    // try {
-    //   // add the connection to the cache
-    //   const lnRpc = await createLnRpc(config);
-    //   const routerRpc = await createRouterRpc(config);
-
-    //   // verify we have permission get node info
-    //   const { identityPubkey: pubkey } = await lnRpc.getInfo();
-
-    //   // verify we have permission to get channel balances
-    //   await lnRpc.channelBalance();
-
-    //   // verify we can sign a message
-    //   const msg = Buffer.from("authorization test").toString("base64");
-    //   const { signature } = await lnRpc.signMessage({ msg });
-
-    //   // verify we have permission to verify a message
-    //   await lnRpc.verifyMessage({ msg, signature });
-
-    //   // verify we have permissions to create a 1sat invoice
-    //   const { rHash } = await lnRpc.addInvoice({ value: "1" });
-
-    //   // verify we have permission to lookup invoices
-    //   await lnRpc.lookupInvoice({ rHash });
-
-    //   // listen for payments from LND
-    //   this.listenForPayments(lnRpc, pubkey);
-
-    //   // store this rpc connection in the in-memory list
-    //   this.lnRpc = lnRpc;
-    //   this.routerRpc = routerRpc;
-
-    //   console.log("connected", { pubkey });
-    //   // return this node's token for future requests
-    //   return { token, pubkey };
-    // } catch (err) {
-    //   // remove the connection from the cache since it is not valid
-    //   if (this.lnRpc) {
-    //     this.lnRpc = null;
-    //   }
-    //   throw err;
-    // }
-
     try {
       const { lnd } = await lightning.authenticatedLndGrpc({
         macaroon: process.env.MACAROON,
@@ -159,6 +96,7 @@ class Lightning extends EventEmitter {
   async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
     const stream = lightning.subscribeToInvoices({ lnd });
     stream.on("invoice_updated", (invoice) => {
+      console.log({ invoice_updated: invoice });
       const { confirmed_at, tokens, id } = invoice;
       if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
       this.emit(NodeEvents.invoiceUpdated, {

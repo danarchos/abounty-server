@@ -29,6 +29,7 @@ export interface Payment {
   creationDate: string | undefined;
   userId: string | undefined;
   bountyId: string | undefined;
+  secret: string | undefined;
 }
 
 // Can use EventEmitter in future to emit an event.
@@ -108,18 +109,18 @@ class Supabase extends EventEmitter {
   }
 
   async addPayment(payment: Payment) {
-    const { hash, request, amount, creationDate, userId, bountyId } = payment;
+    const { hash, request, amount, creationDate, userId, bountyId, secret } =
+      payment;
 
-    const response = await this.client.from("payments").insert({
+    await this.client.from("payments").insert({
       request,
       hash,
       value: amount,
       creationDate,
       userId,
+      secret,
       bountyId,
     });
-
-    console.log({ response });
   }
 
   async confirmPayment(date: any, hash: string) {

@@ -5,7 +5,6 @@ import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
 import cron from "node-cron";
-import moment from "moment";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 require("dotenv").config();
@@ -57,8 +56,16 @@ app.post(
   "/create-bounty-invoice",
   catchAsyncErrors(lnRoutes.createBountyInvoice)
 );
-
 app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
+app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
+app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
+app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
+
+// channel managament
+app.post(
+  "/cancel-pending-channel",
+  catchAsyncErrors(lnRoutes.cancelPendingChannel)
+);
 
 app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
@@ -82,7 +89,7 @@ app.ws("/events", (ws) => {
   // };
 
   const paymentsListener = (info: any) => {
-    const event = { type: SocketEvents.invoicePaid, data: info };
+    const event = { type: SocketEvents.invoiceUpdated, data: info };
     ws.send(JSON.stringify(event));
   };
 

@@ -35,15 +35,43 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
   const { amount, userId, bountyId } = req.body;
   const lnd = ln.getLnd();
 
-  const inv = await lightning.createInvoice({ lnd, tokens: amount });
-  await db.addPayment({
-    request: inv.request,
-    hash: inv.id,
-    amount,
-    userId,
-    bountyId,
-    creationDate: inv.created_at,
-  });
+  // older way
+  // const randomSecret = () => crypto.randomBytes(32).toString("hex");
+  // const sha256 = (secret: string) =>
+  //   crypto.createHash("sha256").update(secret).digest("hex");
+  // const secret = randomSecret();
+  // const id = sha256(secret);
+
+  // bos ln-service example
+  // const preimage = randomBytes(preimageByteLength);
+  // const id = createHash('sha256').update(preimage).digest().toString('hex');
+  // const secret = preimage.toString('hex');
+
+  const preimage = crypto.randomBytes(32);
+  const id = crypto
+    .createHash("sha256")
+    .update(preimage)
+    .digest()
+    .toString("hex");
+  const secret = preimage.toString("hex");
+
+  const inv = await lightning.createHodlInvoice({ id, lnd, tokens: amount });
+
+  try {
+    const response = await db.addPayment({
+      request: inv.request,
+      hash: inv.id,
+      amount,
+      userId,
+      bountyId,
+      creationDate: inv.created_at,
+      secret: secret,
+    });
+    console.log({ response });
+  } catch (err) {
+    console.log("error db", err);
+  }
+
   res.send({
     payreq: inv.request,
     hash: inv.id,
@@ -51,11 +79,94 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
   });
 };
 
-export const sendKeysend = async (req: Request, res: Response) => {
-  console.log("hit");
-  // const { pubkey } = req.body;
-  // const randoStr = crypto.randomBytes(32).toString("base64");
+export const cancelInvoice = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  const lnd = ln.getLnd();
 
+  try {
+    const response = await lightning.cancelHodlInvoice({
+      id,
+      lnd,
+    });
+    console.log("response", response);
+    res.send({
+      response,
+    });
+  } catch (err) {
+    console.log({ err });
+    res.send({
+      err,
+    });
+  }
+};
+
+export const settleInvoice = async (req: Request, res: Response) => {
+  console.log("hit");
+  const { secret } = req.body;
+  const lnd = ln.getLnd();
+
+  try {
+    const response = await lightning.settleHodlInvoice({
+      secret,
+      lnd,
+    });
+    console.log("response", response);
+    res.send({
+      response,
+    });
+  } catch (err) {
+    console.log({ err });
+    res.send({
+      err,
+    });
+  }
+};
+
+export const getInvoice = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  const lnd = ln.getLnd();
+
+  try {
+    const response = await lightning.getInvoice({
+      id,
+      lnd,
+    });
+    console.log("response", response);
+    res.send({
+      invoice: response,
+    });
+  } catch (err) {
+    console.log({ err });
+    res.send({
+      ok: false,
+    });
+  }
+};
+
+export const createInvoice = async (req: Request, res: Response) => {
+  const { amount } = req.body;
+  const lnd = ln.getLnd();
+  const inv = await lightning.createInvoice({ lnd, tokens: amount });
+  res.send({
+    payreq: inv.request,
+    hash: inv.id,
+    amount: inv.tokens,
+  });
+};
+
+export const cancelPendingChannel = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  const lnd = ln.getLnd();
+
+  try {
+    const response = await lightning.cancelPendingChannel({ lnd, id });
+    console.log(response);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+export const sendKeysend = async (req: Request, res: Response) => {
   const lnd = ln.getLnd();
 
   const preimage = crypto.randomBytes(32);
@@ -97,38 +208,4 @@ export const sendKeysend = async (req: Request, res: Response) => {
   } catch (err) {
     console.log({ err });
   }
-
-  // const rpc = lightning.get();
-
-  // const preim/age =
-  // try {
-  //   const response = await rpc.sendPaymentV2({
-  //     dest: Buffer.from(myWosPub, "hex"),
-  //     amt: 210,
-  //     allowSelfPayment: true,
-  //     timeoutSeconds: 30,
-  //     paymentHash: preimage.toString("base64"),
-  //     destCustomRecords: [[5482373484, Buffer.from(preimage)]],
-  //   });
-
-  //   console.log({ response });
-
-  //   // circular erro, just need to see the error in postman so i can compare with the error on voltage cloud
-  //   res.send({ ok: true });
-  // } catch (err) {
-  //   console.log("err", err);
-  //   res.send({ ok: false });
-  // }
-};
-
-export const createInvoice = async (req: Request, res: Response) => {
-  console.log("hit");
-  const { amount } = req.body;
-  const lnd = ln.getLnd();
-  const inv = await lightning.createInvoice({ lnd, tokens: amount });
-  res.send({
-    payreq: inv.request,
-    hash: inv.id,
-    amount: inv.tokens,
-  });
 };
