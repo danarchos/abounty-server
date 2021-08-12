@@ -48,7 +48,7 @@ export const catchAsyncErrors = (
 // Bounties
 //
 // app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
-// app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
+app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 
 //
 // LN Routes
@@ -60,7 +60,7 @@ app.post(
 
 app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
 
-// app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
+app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
@@ -88,12 +88,12 @@ app.ws("/events", (ws) => {
 
   // add listeners to to send data over the socket
   // db.on(PostEvents.updated, postsListener);
-  lightning.on(NodeEvents.invoicePaid, paymentsListener);
+  lightning.on(NodeEvents.invoiceUpdated, paymentsListener);
 
   // remove listeners when the socket is closed
   ws.on("close", () => {
     // db.off(PostEvents.updated, postsListener);
-    lightning.off(NodeEvents.invoicePaid, paymentsListener);
+    lightning.off(NodeEvents.invoiceUpdated, paymentsListener);
   });
 });
 
@@ -103,7 +103,6 @@ console.log("Starting API server...");
 app.listen(PORT, async () => {
   console.log(`API listening at http://localhost:${PORT}`);
 
-  // Rehydrate data from the DB file
   const allNodes = await db.getAllSupaNodes();
   await lightning.reconnectNode(allNodes);
 });

@@ -6,7 +6,7 @@ import ByteBuffer from "bytebuffer";
 import * as lightning from "lightning";
 import sha, { sha256 } from "js-sha256";
 
-const keysendKey = 5482373484;
+const keysendKey = "5482373484";
 /**
  * POST /api/connect
  */
@@ -36,21 +36,28 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
   const lnd = ln.getLnd();
 
   const inv = await lightning.createInvoice({ lnd, tokens: amount });
-  // const inv = await lightning.createInvoice({
-  //   value: amount.toString(),
-  //   memo: userId && bountyId ? JSON.stringify({ userId, bountyId }) : undefined,
-  // });
-
+  await db.addPayment({
+    request: inv.request,
+    hash: inv.id,
+    amount,
+    userId,
+    bountyId,
+    creationDate: inv.created_at,
+  });
   res.send({
-    payreq: (await inv).request,
+    payreq: inv.request,
     hash: inv.id,
     amount,
   });
 };
 
 export const sendKeysend = async (req: Request, res: Response) => {
+  console.log("hit");
   // const { pubkey } = req.body;
   // const randoStr = crypto.randomBytes(32).toString("base64");
+
+  const lnd = ln.getLnd();
+
   const preimage = crypto.randomBytes(32);
   const myWosPub =
     "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226";
@@ -60,6 +67,37 @@ export const sendKeysend = async (req: Request, res: Response) => {
     "03d831eb02996b2e0eda05d01a3f17d998f620a9c842f28fa75ca028aab8d103e7";
   const selfPubkey =
     "03d805d0c6ad3306441c8e8c076cdcaa9a13064ed606376282cd1154c1ab0ed9ae";
+
+  const keySendPreimageType = "5482373484";
+  const id = crypto
+    .createHash("sha256")
+    .update(preimage)
+    .digest()
+    .toString("hex");
+  const secret = preimage.toString("hex");
+
+  try {
+    // @ts-ignore
+    const response = await lightning.payViaPaymentDetails({
+      lnd,
+      destination: selfPubkey,
+      tokens: 210,
+      id,
+      pathfinding_timeout: 100,
+      messages: [{ type: keySendPreimageType, value: secret }],
+      // routes: [
+      //   [
+      //     {
+      //       public_key: "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226",
+      //     },
+      //   ],
+      // ],
+    });
+    console.log({ response });
+  } catch (err) {
+    console.log({ err });
+  }
+
   // const rpc = lightning.get();
 
   // const preim/age =
@@ -88,7 +126,6 @@ export const createInvoice = async (req: Request, res: Response) => {
   const { amount } = req.body;
   const lnd = ln.getLnd();
   const inv = await lightning.createInvoice({ lnd, tokens: amount });
-  console.log({ inv });
   res.send({
     payreq: inv.request,
     hash: inv.id,

@@ -7,7 +7,7 @@ import * as lightning from "lightning";
 import { AuthenticatedLnd } from "lightning";
 
 export const NodeEvents = {
-  invoicePaid: "invoice-paid",
+  invoiceUpdated: "invoice-updated",
 };
 
 class Lightning extends EventEmitter {
@@ -158,33 +158,14 @@ class Lightning extends EventEmitter {
    */
   async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
     const stream = lightning.subscribeToInvoices({ lnd });
-    stream.on("data", (invoice) => {
-      console.log("invoice created");
-      if (invoice.settled) {
-        const { paymentRequest, value, creationDate, settleDate, memo } =
-          invoice;
-
-        let userId;
-        let bountyId;
-
-        if (memo) {
-          const json = JSON.parse(memo);
-          userId = json.userId;
-          bountyId = json.bountyId;
-        }
-
-        db.addPayment({
-          paymentRequest,
-          value,
-          creationDate,
-          settleDate,
-          userId,
-          bountyId,
-        });
-        const hash = (invoice.rHash as Buffer).toString("base64");
-        const amount = invoice.amtPaidSat;
-        this.emit(NodeEvents.invoicePaid, { hash, amount, pubkey });
-      }
+    stream.on("invoice_updated", (invoice) => {
+      const { confirmed_at, tokens, id } = invoice;
+      if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
+      this.emit(NodeEvents.invoiceUpdated, {
+        hash: id,
+        amount: tokens,
+        pubkey,
+      });
     });
   }
 }

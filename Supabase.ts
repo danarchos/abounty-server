@@ -23,10 +23,10 @@ export interface Bounty {
 }
 
 export interface Payment {
-  paymentRequest: string | undefined;
-  value: string | undefined;
+  request: string | undefined;
+  hash: string | undefined;
+  amount: number | undefined;
   creationDate: string | undefined;
-  settleDate: string | undefined;
   userId: string | undefined;
   bountyId: string | undefined;
 }
@@ -60,25 +60,27 @@ class Supabase extends EventEmitter {
   }
 
   async getAllExpiredBounties() {
-    const currentTime = moment().unix()
-    const { data } = await this.client.from("bounties").select('id').lte('expiry', currentTime);
+    const currentTime = moment().unix();
+    const { data } = await this.client
+      .from("bounties")
+      .select("id")
+      .lte("expiry", currentTime);
     if (!data) return [];
     return data;
   }
 
   async expireBounties() {
-    const currentTime = moment().unix()
-    const { data } = await this.client.from("bounties")
-      .update({ status: 'EXPIRED' })
-      .match({ status: 'OPEN' })
-      .lte('expiry', currentTime);
+    const currentTime = moment().unix();
+    const { data } = await this.client
+      .from("bounties")
+      .update({ status: "EXPIRED" })
+      .match({ status: "OPEN" })
+      .lte("expiry", currentTime);
     return data;
   }
 
-
   async createBounty(bounty: Bounty) {
-    const { subject, speakers, tags, active, description, userId } =
-      bounty;
+    const { subject, speakers, tags, active, description, userId } = bounty;
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -106,31 +108,27 @@ class Supabase extends EventEmitter {
   }
 
   async addPayment(payment: Payment) {
-    const {
-      paymentRequest,
-      value,
-      creationDate,
-      settleDate,
-      userId,
-      bountyId,
-    } = payment;
-    console.log("called this", {
-      paymentRequest,
-      value,
-      creationDate,
-      settleDate,
-      userId,
-      bountyId,
-    });
+    const { hash, request, amount, creationDate, userId, bountyId } = payment;
+
     const response = await this.client.from("payments").insert({
-      paymentRequest,
-      value,
+      request,
+      hash,
+      value: amount,
       creationDate,
-      settleDate,
       userId,
       bountyId,
     });
+
     console.log({ response });
+  }
+
+  async confirmPayment(date: any, hash: string) {
+    const { data, error } = await this.client
+      .from("payments")
+      .update({ paid: true, settleDate: date })
+      .match({ hash });
+
+    console.log({ data });
   }
 }
 
