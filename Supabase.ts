@@ -30,6 +30,8 @@ export interface Payment {
   userId: string | undefined;
   bountyId: string | undefined;
   secret: string | undefined;
+  username: string | undefined;
+  expiry: number | undefined;
 }
 
 // Can use EventEmitter in future to emit an event.
@@ -56,6 +58,15 @@ class Supabase extends EventEmitter {
 
   async getAllBounties() {
     const { data } = await this.client.from("bounties");
+    if (!data) return [];
+    return data;
+  }
+
+  async getAllPendingInvoices() {
+    const { data } = await this.client
+      .from("payments")
+      .select("*")
+      .match({ status: "PENDING" });
     if (!data) return [];
     return data;
   }
@@ -109,27 +120,67 @@ class Supabase extends EventEmitter {
   }
 
   async addPayment(payment: Payment) {
-    const { hash, request, amount, creationDate, userId, bountyId, secret } =
-      payment;
+    const {
+      hash,
+      request,
+      amount,
+      creationDate,
+      userId,
+      bountyId,
+      secret,
+      expiry,
+      username,
+    } = payment;
 
-    await this.client.from("payments").insert({
+    const response = await this.client.from("payments").insert({
       request,
       hash,
       value: amount,
       creationDate,
       userId,
       secret,
+      expiry,
       bountyId,
+      username,
     });
+
+    return response;
   }
 
-  async confirmPayment(date: any, hash: string) {
+  async settlePayment(date: any, hash: string) {
     const { data, error } = await this.client
       .from("payments")
-      .update({ paid: true, settleDate: date })
+      .update({ status: "SETTLED", settleDate: date })
       .match({ hash });
 
-    console.log({ data });
+    console.log({ data, error });
+  }
+
+  async heldPayment(hash: string) {
+    const { data, error } = await this.client
+      .from("payments")
+      .update({ status: "HELD" })
+      .match({ hash });
+
+    console.log({ data, error });
+  }
+
+  async cancelPayment(hash: string) {
+    const { data, error } = await this.client
+      .from("payments")
+      .update({ status: "CANCELED" })
+      .match({ hash });
+
+    console.log({ data, error });
+  }
+
+  async updateInvoice(hash: string, status: "CANCELED" | "HELD" | "SETTLED") {
+    const { data, error } = await this.client
+      .from("payments")
+      .update({ status })
+      .match({ hash });
+
+    console.log({ data, error });
   }
 }
 
