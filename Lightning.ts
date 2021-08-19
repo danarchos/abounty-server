@@ -3,9 +3,11 @@ import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
 import db from "./Supabase";
+import * as lightning from "lightning";
+import { AuthenticatedLnd } from "lightning";
 
 export const NodeEvents = {
-  invoicePaid: "invoice-paid",
+  invoiceUpdated: "invoice-updated",
 };
 
 class Lightning extends EventEmitter {
@@ -14,86 +16,53 @@ class Lightning extends EventEmitter {
    * avoid calling `createLnRpc` on every request. Instead, the object is kept
    * in memory for the lifetime of the server.
    */
-  private lnRpc: LnRpc | null = null;
-  private routerRpc: RouterRpc | null = null;
+  private lnd: AuthenticatedLnd | null = null;
+  public pubkey: string | null = null;
+  // private routerRpc: RouterRpc | null = null;
 
   /**
    * Retrieves the in-memory connection to an LND node
    */
-  getLnRpc(): LnRpc {
-    if (!this.lnRpc) {
+  getLnd(): AuthenticatedLnd {
+    if (!this.lnd) {
       throw new Error("Not Authorized. You must login first!");
     }
 
-    return this.lnRpc;
-  }
-
-  /**
-   * Retrieves the in-memory connection to an LND node
-   */
-  getRouterRpc(): RouterRpc {
-    if (!this.routerRpc) {
-      throw new Error("Not Authorized. You must login first!");
-    }
-
-    return this.routerRpc;
+    return this.lnd;
   }
 
   /**
    * Tests the LND node connection by validating that we can get the node's info
    */
-  async connect(host: string, prevToken?: string) {
-    // generate a random token, without
-    const token = prevToken || uuidv4().replace(/-/g, "");
-
-    const config = {
-      server: host,
-      tls: "",
-      cert: "",
-      macaroonPath: "./admin.macaroon",
-    };
-
+  async connect() {
     try {
-      // add the connection to the cache
-      const lnRpc = await createLnRpc(config);
-      const routerRpc = await createRouterRpc(config);
+      const { lnd } = await lightning.authenticatedLndGrpc({
+        macaroon: process.env.MACAROON,
+        socket: process.env.HOST,
+      });
 
-      // verify we have permission get node info
-      const { identityPubkey: pubkey } = await lnRpc.getInfo();
-
-      // verify we have permission to get channel balances
-      await lnRpc.channelBalance();
-
-      // verify we can sign a message
       const msg = Buffer.from("authorization test").toString("base64");
-      const { signature } = await lnRpc.signMessage({ msg });
 
-      // verify we have permission to verify a message
-      await lnRpc.verifyMessage({ msg, signature });
+      // Verifiy I can sign a message
+      await lightning.signMessage({
+        lnd,
+        message: msg,
+      });
 
-      // verify we have permissions to create a 1sat invoice
-      const { rHash } = await lnRpc.addInvoice({ value: "1" });
+      // Get the public key
+      const { public_key } = await lightning.getIdentity({ lnd });
 
-      // verify we have permission to lookup invoices
-      await lnRpc.lookupInvoice({ rHash });
+      console.log({ connected: public_key });
 
-      // listen for payments from LND
-      this.listenForPayments(lnRpc, pubkey);
+      this.lnd = lnd;
+      this.pubkey = public_key;
 
-      // store this rpc connection in the in-memory list
-      this.lnRpc = lnRpc;
-      this.routerRpc = routerRpc;
-
-      console.log("connected", { pubkey });
-      // return this node's token for future requests
-      return { token, pubkey };
+      this.listenForPayments(lnd, public_key);
     } catch (err) {
-      // remove the connection from the cache since it is not valid
-      if (this.lnRpc) {
-        this.lnRpc = null;
-      }
-      throw err;
+      console.log({ err });
     }
+
+    return;
   }
 
   /**
@@ -113,53 +82,28 @@ class Lightning extends EventEmitter {
     // console.log({ host, token });
     try {
       console.log(`Reconnecting to LND node ${host}`);
-      await this.connect(host);
+      await this.connect();
     } catch (error) {
       // the token will not be cached
       console.error(`Failed to reconnect to LND node ${host}`);
     }
   }
 
-  // async refundBounties(expiredBounties: any) {
-  //   const wosPubkey = "035e4ff418fc8b5554c5d9eea66396c227bd429a3251c8cbc711002ba215bfc226"
-
-  // }
-
   /**
    * listen for payments made to the node. When a payment is settled, emit
    * the `invoicePaid` event to notify listeners of the NodeManager
    */
-  async listenForPayments(rpc: LnRpc, pubkey: string) {
-    const stream = rpc.subscribeInvoices();
-    stream.on("data", (invoice) => {
-      console.log("invoice created");
-      if (invoice.settled) {
-        console.log("payment recieved");
-
-        const { paymentRequest, value, creationDate, settleDate, memo } =
-          invoice;
-
-        let userId;
-        let bountyId;
-
-        if (memo) {
-          const json = JSON.parse(memo);
-          userId = json.userId;
-          bountyId = json.bountyId;
-        }
-
-        db.addPayment({
-          paymentRequest,
-          value,
-          creationDate,
-          settleDate,
-          userId,
-          bountyId,
-        });
-        const hash = (invoice.rHash as Buffer).toString("base64");
-        const amount = invoice.amtPaidSat;
-        this.emit(NodeEvents.invoicePaid, { hash, amount, pubkey });
-      }
+  async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
+    const stream = lightning.subscribeToInvoices({ lnd });
+    stream.on("invoice_updated", (invoice) => {
+      console.log({ invoice_updated: invoice });
+      const { confirmed_at, tokens, id } = invoice;
+      if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
+      this.emit(NodeEvents.invoiceUpdated, {
+        hash: id,
+        amount: tokens,
+        pubkey,
+      });
     });
   }
 }

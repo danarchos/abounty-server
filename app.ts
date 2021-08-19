@@ -5,7 +5,6 @@ import { SocketEvents } from "./types";
 import lightning, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
 import cron from "node-cron";
-import moment from "moment";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 require("dotenv").config();
@@ -47,7 +46,7 @@ export const catchAsyncErrors = (
 //
 // Bounties
 //
-app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+// app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 
 //
@@ -57,12 +56,22 @@ app.post(
   "/create-bounty-invoice",
   catchAsyncErrors(lnRoutes.createBountyInvoice)
 );
+app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
+app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
+app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
+app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
+
+// channel managament
+app.post(
+  "/cancel-pending-channel",
+  catchAsyncErrors(lnRoutes.cancelPendingChannel)
+);
 
 app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
-app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
+// app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 cron.schedule("* * * * *", async () => {
   // const expiredBounties = await db.expireBounties()
@@ -80,18 +89,18 @@ app.ws("/events", (ws) => {
   // };
 
   const paymentsListener = (info: any) => {
-    const event = { type: SocketEvents.invoicePaid, data: info };
+    const event = { type: SocketEvents.invoiceUpdated, data: info };
     ws.send(JSON.stringify(event));
   };
 
   // add listeners to to send data over the socket
   // db.on(PostEvents.updated, postsListener);
-  lightning.on(NodeEvents.invoicePaid, paymentsListener);
+  lightning.on(NodeEvents.invoiceUpdated, paymentsListener);
 
   // remove listeners when the socket is closed
   ws.on("close", () => {
     // db.off(PostEvents.updated, postsListener);
-    lightning.off(NodeEvents.invoicePaid, paymentsListener);
+    lightning.off(NodeEvents.invoiceUpdated, paymentsListener);
   });
 });
 
@@ -101,7 +110,6 @@ console.log("Starting API server...");
 app.listen(PORT, async () => {
   console.log(`API listening at http://localhost:${PORT}`);
 
-  // Rehydrate data from the DB file
   const allNodes = await db.getAllSupaNodes();
   await lightning.reconnectNode(allNodes);
 });
