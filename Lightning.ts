@@ -52,12 +52,14 @@ class Lightning extends EventEmitter {
       // Get the public key
       const { public_key } = await lightning.getIdentity({ lnd });
 
+      this.checkInvoices(lnd);
+
       console.log({ connected: public_key });
 
       this.lnd = lnd;
       this.pubkey = public_key;
 
-      this.listenForPayments(lnd, public_key);
+      // this.listenForPayments(lnd, public_key);
     } catch (err) {
       console.log({ err });
     }
@@ -89,23 +91,73 @@ class Lightning extends EventEmitter {
     }
   }
 
-  /**
+  // TEST THIS PROPERLY
+  async checkInvoices(lnd: AuthenticatedLnd) {
+    const invoiceDetails = await lightning.getInvoices({ lnd });
+    const pendingInvoices = await db.getAllPendingInvoices();
+
+    const filteredInvoices = invoiceDetails.invoices.filter(
+      (invoice) =>
+        invoice.is_confirmed || invoice.is_held || invoice.is_canceled
+    );
+
+    pendingInvoices.forEach(async (invoice) => {
+      const foundInvoice = filteredInvoices.find(
+        (inv) => inv.id === invoice.id
+      );
+      if (foundInvoice) {
+        if (foundInvoice.is_held) {
+          await db.updateInvoice(invoice.id, "HELD");
+        }
+        if (foundInvoice.is_canceled) {
+          await db.updateInvoice(invoice.id, "CANCELED");
+        }
+        if (foundInvoice.is_confirmed) {
+          await db.updateInvoice(invoice.id, "SETTLED");
+        }
+      }
+    });
+  }
+
+  async subscribeToInvoice(lnd: AuthenticatedLnd, id: string) {
+    const stream = lightning.subscribeToInvoice({ lnd, id });
+    stream.on("invoice_updated", (invoice) => {
+      console.log({
+        invoice_updated: {
+          id: invoice.id,
+          held: invoice.is_held,
+          canceled: invoice.is_canceled,
+          confirmed: invoice.is_confirmed,
+        },
+      });
+      const { confirmed_at, id } = invoice;
+      if (invoice.is_held) db.heldPayment(id);
+      if (invoice.is_confirmed) db.settlePayment(confirmed_at, id);
+      if (invoice.is_canceled) db.cancelPayment(id);
+    });
+  }
+
+  /*
+  SUBSCRIBE TO ALL INVOICES
    * listen for payments made to the node. When a payment is settled, emit
    * the `invoicePaid` event to notify listeners of the NodeManager
    */
-  async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
-    const stream = lightning.subscribeToInvoices({ lnd });
-    stream.on("invoice_updated", (invoice) => {
-      console.log({ invoice_updated: invoice });
-      const { confirmed_at, tokens, id } = invoice;
-      if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
-      this.emit(NodeEvents.invoiceUpdated, {
-        hash: id,
-        amount: tokens,
-        pubkey,
-      });
-    });
-  }
+  // async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
+  //   const stream = lightning.subscribeToInvoices({ lnd });
+  //   stream.on("status", (invoice) => {
+  //     console.log({ STATUS_UPDATE: invoice });
+  //   });
+  //   stream.on("invoice_updated", (invoice) => {
+  //     console.log({ invoice_updated: invoice });
+  //     const { confirmed_at, tokens, id } = invoice;
+  //     if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
+  //     this.emit(NodeEvents.invoiceUpdated, {
+  //       hash: id,
+  //       amount: tokens,
+  //       pubkey,
+  //     });
+  //   });
+  // }
 }
 
 export default new Lightning();

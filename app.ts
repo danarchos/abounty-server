@@ -46,7 +46,7 @@ export const catchAsyncErrors = (
 //
 // Bounties
 //
-// app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 
 //
@@ -74,6 +74,7 @@ app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 // app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 cron.schedule("* * * * *", async () => {
+  // ALSO EXPIRE INVOICES AND REMOVE EV FROM DB, EXP DATE + 1 HOUR
   // const expiredBounties = await db.expireBounties()
   // const response = await lightning.refundBounties(expiredBounties)
 });
