@@ -67,7 +67,7 @@ app.post(
   catchAsyncErrors(lnRoutes.cancelPendingChannel)
 );
 
-app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
+// app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
 
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));

@@ -62,11 +62,11 @@ class Supabase extends EventEmitter {
     return data;
   }
 
-  async getAllPendingInvoices() {
+  async getAllPendingAndHeldInvoices() {
     const { data } = await this.client
       .from("payments")
       .select("*")
-      .match({ status: "PENDING" });
+      .or("status.eq.HELD,status.eq.PENDING");
     if (!data) return [];
     return data;
   }
@@ -156,31 +156,33 @@ class Supabase extends EventEmitter {
     console.log({ data, error });
   }
 
-  async heldPayment(hash: string) {
+  async calculateBountyBalance(hash: string) {
     const { data, error } = await this.client
       .from("payments")
-      .update({ status: "HELD" })
+      .select("bountyId")
       .match({ hash });
 
-    console.log({ data, error });
-  }
+    if (data) {
+      const payments = await this.client
+        .from("payments")
+        .select("value")
+        .match({ bountyId: data[0].bountyId, status: "HELD" });
 
-  async cancelPayment(hash: string) {
-    const { data, error } = await this.client
-      .from("payments")
-      .update({ status: "CANCELED" })
-      .match({ hash });
+      const balance = !payments?.data
+        ? 0
+        : payments.data
+            .map((payment) => payment.value)
+            .reduce((accumulator, value) => accumulator + value);
 
-    console.log({ data, error });
+      await this.client
+        .from("bounties")
+        .update({ balance })
+        .match({ id: data[0].bountyId });
+    }
   }
 
   async updateInvoice(hash: string, status: "CANCELED" | "HELD" | "SETTLED") {
-    const { data, error } = await this.client
-      .from("payments")
-      .update({ status })
-      .match({ hash });
-
-    console.log({ data, error });
+    await this.client.from("payments").update({ status }).match({ hash });
   }
 }
 

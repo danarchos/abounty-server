@@ -5,6 +5,7 @@ import { LndNode } from "./Supabase";
 import db from "./Supabase";
 import * as lightning from "lightning";
 import { AuthenticatedLnd } from "lightning";
+import moment from "moment";
 
 export const NodeEvents = {
   invoiceUpdated: "invoice-updated",
@@ -51,10 +52,8 @@ class Lightning extends EventEmitter {
 
       // Get the public key
       const { public_key } = await lightning.getIdentity({ lnd });
-
-      this.checkInvoices(lnd);
-
-      console.log({ connected: public_key });
+      this.syncInvoices(lnd);
+      console.log("connected lnd");
 
       this.lnd = lnd;
       this.pubkey = public_key;
@@ -92,36 +91,52 @@ class Lightning extends EventEmitter {
   }
 
   // TEST THIS PROPERLY
-  async checkInvoices(lnd: AuthenticatedLnd) {
+  async syncInvoices(lnd: AuthenticatedLnd) {
     const invoiceDetails = await lightning.getInvoices({ lnd });
-    const pendingInvoices = await db.getAllPendingInvoices();
+    const pendingHeldInvoices = await db.getAllPendingAndHeldInvoices();
 
     const filteredInvoices = invoiceDetails.invoices.filter(
       (invoice) =>
         invoice.is_confirmed || invoice.is_held || invoice.is_canceled
     );
 
-    pendingInvoices.forEach(async (invoice) => {
-      const foundInvoice = filteredInvoices.find(
-        (inv) => inv.id === invoice.id
-      );
-      if (foundInvoice) {
-        if (foundInvoice.is_held) {
-          await db.updateInvoice(invoice.id, "HELD");
+    await Promise.all(
+      pendingHeldInvoices.map(async (invoice) => {
+        const foundInvoice = filteredInvoices.find(
+          (inv) => inv.id === invoice.hash
+        );
+        if (foundInvoice) {
+          if (foundInvoice.is_held) {
+            if (
+              pendingHeldInvoices.find((item) => item.hash === invoice.hash)
+                .status === "HELD"
+            ) {
+              return;
+            }
+            await db.updateInvoice(invoice.hash, "HELD");
+            return;
+          }
+
+          if (foundInvoice.is_canceled) {
+            await db.updateInvoice(invoice.hash, "CANCELED");
+            return;
+          }
+
+          if (foundInvoice.is_confirmed) {
+            await db.updateInvoice(invoice.hash, "SETTLED");
+            return;
+          }
+
+          if (this.lnd)
+            await this.subscribeToInvoice(this.lnd, foundInvoice.id);
         }
-        if (foundInvoice.is_canceled) {
-          await db.updateInvoice(invoice.id, "CANCELED");
-        }
-        if (foundInvoice.is_confirmed) {
-          await db.updateInvoice(invoice.id, "SETTLED");
-        }
-      }
-    });
+      })
+    );
   }
 
   async subscribeToInvoice(lnd: AuthenticatedLnd, id: string) {
     const stream = lightning.subscribeToInvoice({ lnd, id });
-    stream.on("invoice_updated", (invoice) => {
+    stream.on("invoice_updated", async (invoice) => {
       console.log({
         invoice_updated: {
           id: invoice.id,
@@ -131,9 +146,12 @@ class Lightning extends EventEmitter {
         },
       });
       const { confirmed_at, id } = invoice;
-      if (invoice.is_held) db.heldPayment(id);
-      if (invoice.is_confirmed) db.settlePayment(confirmed_at, id);
-      if (invoice.is_canceled) db.cancelPayment(id);
+      if (invoice.is_held) {
+        await db.updateInvoice(id, "HELD");
+        await db.calculateBountyBalance(invoice.id);
+      }
+      if (invoice.is_confirmed) await db.settlePayment(confirmed_at, id);
+      if (invoice.is_canceled) await db.updateInvoice(id, "CANCELED");
     });
   }
 
