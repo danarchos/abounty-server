@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import ln from "../Lightning";
+import ln, { NodeEvents } from "../Lightning";
 import db from "../Supabase";
 import { createHash, randomBytes } from "crypto";
 import ByteBuffer from "bytebuffer";
@@ -82,7 +82,7 @@ export const cancelInvoice = async (req: Request, res: Response) => {
       id,
       lnd,
     });
-    await db.updateInvoice(id, "CANCELED")
+    await db.updateInvoice(id, "CANCELED");
     res.send({
       message: "Successfully cancelled hodl invoice",
     });

@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import expressWs from "express-ws";
 import cors from "cors";
 import { SocketEvents } from "./types";
-import lightning, { NodeEvents } from "./Lightning";
+import ln, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
 import cron from "node-cron";
 import * as lnRoutes from "./routes/lightningRoutes";
@@ -74,34 +74,29 @@ app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 // app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 cron.schedule("* * * * *", async () => {
-  // ALSO EXPIRE INVOICES AND REMOVE EV FROM DB, EXP DATE + 1 HOUR
-  // const expiredBounties = await db.expireBounties()
-  // const response = await lightning.refundBounties(expiredBounties)
+  await db.expireBounties();
 });
+
+// ln.on("test", () => console.log("called"));
 
 //
 // Configure Websocket
 //
 app.ws("/events", (ws) => {
-  // when a websocket connection is made, add listeners for posts and invoices
-  // const postsListener = (posts: Post[]) => {
-  //   const event = { type: SocketEvents.postUpdated, data: posts };
-  //   ws.send(JSON.stringify(event));
-  // };
-
   const paymentsListener = (info: any) => {
+    console.log("called payments listener");
     const event = { type: SocketEvents.invoiceUpdated, data: info };
     ws.send(JSON.stringify(event));
   };
 
   // add listeners to to send data over the socket
   // db.on(PostEvents.updated, postsListener);
-  lightning.on(NodeEvents.invoiceUpdated, paymentsListener);
+  ln.on(NodeEvents.invoicePaid, paymentsListener);
 
   // remove listeners when the socket is closed
   ws.on("close", () => {
     // db.off(PostEvents.updated, postsListener);
-    lightning.off(NodeEvents.invoiceUpdated, paymentsListener);
+    ln.off(NodeEvents.invoicePaid, paymentsListener);
   });
 });
 
@@ -112,5 +107,5 @@ app.listen(PORT, async () => {
   console.log(`API listening at http://localhost:${PORT}`);
 
   const allNodes = await db.getAllSupaNodes();
-  await lightning.reconnectNode(allNodes);
+  await ln.reconnectNode(allNodes);
 });

@@ -96,7 +96,7 @@ class Supabase extends EventEmitter {
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
-      expiry: moment().unix() + 100,
+      expiry: moment().unix() + 5000,
       created: moment().unix(),
       tags,
       description,

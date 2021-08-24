@@ -9,6 +9,8 @@ import moment from "moment";
 
 export const NodeEvents = {
   invoiceUpdated: "invoice-updated",
+  invoicePaid: "invoice-paid",
+  bountyCreated: "bounty-created",
 };
 
 class Lightning extends EventEmitter {
@@ -149,6 +151,7 @@ class Lightning extends EventEmitter {
       if (invoice.is_held) {
         await db.updateInvoice(id, "HELD");
         await db.calculateBountyBalance(invoice.id);
+        this.emit(NodeEvents.invoicePaid, { hash: invoice.id });
       }
       if (invoice.is_confirmed) await db.settlePayment(confirmed_at, id);
       if (invoice.is_canceled) await db.updateInvoice(id, "CANCELED");
