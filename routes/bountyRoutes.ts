@@ -2,14 +2,14 @@ import { Request, Response } from "express";
 import db from "../Supabase";
 
 export const createBounty = async (req: Request, res: Response) => {
-  const { userId, description, subject, speakers, tags } = req.body;
+  const { user, description, subject, speakers, tags } = req.body;
 
   const created = new Date();
 
   const response = await db.createBounty({
     created,
     subject,
-    userId,
+    user,
     description,
     speakers,
     tags,
@@ -22,4 +22,11 @@ export const createBounty = async (req: Request, res: Response) => {
 export const allBounties = async (req: Request, res: Response) => {
   const bounties = await db.getAllBounties();
   res.send(bounties);
+};
+
+export const bounty = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const bounty = await db.getBounty(id);
+  console.log({ bounty });
+  res.send(bounty);
 };

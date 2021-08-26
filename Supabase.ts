@@ -14,7 +14,7 @@ export interface LndNode {
 
 export interface Bounty {
   subject: string;
-  userId: string;
+  user: { id: string; username: string };
   speakers: { username: string; confirmed: boolean };
   description: string;
   created: Date;
@@ -62,6 +62,16 @@ class Supabase extends EventEmitter {
     return data;
   }
 
+  async getBounty(id: string) {
+    const { data } = await this.client
+      .from("bounties")
+      .select("*")
+      .match({ id })
+      .single();
+    if (!data) return null;
+    return data;
+  }
+
   async getAllPendingAndHeldInvoices() {
     const { data } = await this.client
       .from("payments")
@@ -92,7 +102,7 @@ class Supabase extends EventEmitter {
   }
 
   async createBounty(bounty: Bounty) {
-    const { subject, speakers, tags, active, description, userId } = bounty;
+    const { subject, speakers, tags, active, description, user } = bounty;
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -100,7 +110,7 @@ class Supabase extends EventEmitter {
       created: moment().unix(),
       tags,
       description,
-      userId,
+      user,
     });
     return response;
   }

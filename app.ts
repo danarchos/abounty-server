@@ -47,6 +47,7 @@ export const catchAsyncErrors = (
 // Bounties
 //
 app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 
 //
