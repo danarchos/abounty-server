@@ -62,14 +62,6 @@ app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
 app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
 app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
 
-// channel managament
-app.post(
-  "/cancel-pending-channel",
-  catchAsyncErrors(lnRoutes.cancelPendingChannel)
-);
-
-// app.post("/send-keysend", catchAsyncErrors(lnRoutes.sendKeysend));
-
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 // app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
@@ -77,8 +69,6 @@ app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 cron.schedule("* * * * *", async () => {
   await db.expireBounties();
 });
-
-// ln.on("test", () => console.log("called"));
 
 //
 // Configure Websocket
