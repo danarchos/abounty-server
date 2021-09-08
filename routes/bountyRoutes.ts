@@ -27,6 +27,13 @@ export const allBounties = async (req: Request, res: Response) => {
 export const bounty = async (req: Request, res: Response) => {
   const { id } = req.params;
   const bounty = await db.getBounty(id);
-  console.log({ bounty });
   res.send(bounty);
+};
+
+export const updateSpeaker = async (req: Request, res: Response) => {
+  console.log("hit");
+  const { speakers, userId, bountyId } = req.body;
+  const updated = await db.updateSpeaker(speakers, userId, bountyId);
+  console.log({ updated });
+  res.send(updated);
 };

@@ -7,6 +7,7 @@ import db from "./Supabase";
 import cron from "node-cron";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
+import * as twitterRoutes from "./routes/twitterRoutes";
 require("dotenv").config();
 
 const PORT: number = 4000;
@@ -49,6 +50,7 @@ export const catchAsyncErrors = (
 app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
 app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
+app.post("/update-speaker", catchAsyncErrors(bountyRoutes.updateSpeaker));
 
 //
 // LN Routes
@@ -62,6 +64,9 @@ app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
 app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
 app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
 
+// Twitter routes
+app.get("/usernames", catchAsyncErrors(twitterRoutes.usernames));
+
 // from example app
 app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 // app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
@@ -73,11 +78,16 @@ cron.schedule("* * * * *", async () => {
 //
 // Configure Websocket
 //
-app.ws("/events", (ws) => {
+app.ws("/events", (ws, req) => {
+  console.log("called ws connection");
+
+  const bountyToListenTo = req.query.bountyId;
+
   const paymentsListener = (info: any) => {
-    console.log("called payments listener");
-    const event = { type: SocketEvents.invoiceUpdated, data: info };
-    ws.send(JSON.stringify(event));
+    if (info.bountyId === bountyToListenTo) {
+      const event = { type: SocketEvents.invoiceUpdated, data: info };
+      ws.send(JSON.stringify(event));
+    }
   };
 
   // add listeners to to send data over the socket

@@ -25,6 +25,7 @@ export const getInfo = async (req: Request, res: Response) => {
 };
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
+  console.log("hit");
   const { amount, userId, bountyId, username } = req.body;
   const lnd = ln.getLnd();
 
@@ -57,7 +58,7 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
     console.log("error db", err);
   }
 
-  await ln.subscribeToInvoice(lnd, inv.id);
+  await ln.subscribeToInvoice(lnd, inv.id, bountyId);
 
   res.send({
     payreq: inv.request,
@@ -119,7 +120,6 @@ export const getInvoice = async (req: Request, res: Response) => {
       id,
       lnd,
     });
-    console.log("response", response);
     res.send({
       invoice: response,
     });

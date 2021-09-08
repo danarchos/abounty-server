@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { createClient } from "@supabase/supabase-js";
 import moment from "moment";
+import { error } from "console";
 require("dotenv").config();
 
 const url = process.env.SUPABASE_URL ?? "";
@@ -57,7 +58,10 @@ class Supabase extends EventEmitter {
   }
 
   async getAllBounties() {
-    const { data } = await this.client.from("bounties");
+    const { data } = await this.client
+      .from("bounties")
+      .select("*")
+      .not("status", "eq", "EXPIRED");
     if (!data) return [];
     return data;
   }
@@ -102,7 +106,7 @@ class Supabase extends EventEmitter {
   }
 
   async createBounty(bounty: Bounty) {
-    const { subject, speakers, tags, active, description, user } = bounty;
+    const { subject, speakers, tags, description, user } = bounty;
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -142,19 +146,43 @@ class Supabase extends EventEmitter {
       username,
     } = payment;
 
-    const response = await this.client.from("payments").insert({
-      request,
-      hash,
-      value: amount,
-      creationDate,
-      userId,
-      secret,
-      expiry,
-      bountyId,
-      username,
-    });
+    try {
+      const response = await this.client.from("payments").insert({
+        request,
+        hash,
+        value: amount,
+        creationDate,
+        userId,
+        secret,
+        expiry,
+        bountyId,
+        username,
+      });
+      if (response.error) {
+        new Error("Whopps");
+      }
+      console.log({ response });
+      return response;
+    } catch (err) {
+      console.log({ err });
+    }
+  }
 
-    return response;
+  async updateSpeaker(speakers: any, userId: string, bountyId: string) {
+    console.log({ speakers, userId, bountyId });
+    const speaker = speakers.find((item: any) => (item.userId = userId));
+    const speakerIndex = speakers.indexOf(speaker);
+    const newSpeakers = speakers;
+    newSpeakers[speakerIndex] = { ...speaker, confirmed: true };
+
+    const { data, error } = await this.client
+      .from("bounties")
+      .update({ speakers })
+      .match({ id: bountyId });
+
+    console.log({ data });
+
+    return data;
   }
 
   async settlePayment(date: any, hash: string) {
@@ -176,7 +204,7 @@ class Supabase extends EventEmitter {
       const payments = await this.client
         .from("payments")
         .select("value")
-        .match({ bountyId: data[0].bountyId, status: "HELD" });
+        .match({ bountyId: data[0]?.bountyId, status: "HELD" });
 
       const balance = !payments?.data
         ? 0

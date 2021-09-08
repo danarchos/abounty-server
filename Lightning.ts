@@ -130,13 +130,21 @@ class Lightning extends EventEmitter {
           }
 
           if (this.lnd)
-            await this.subscribeToInvoice(this.lnd, foundInvoice.id);
+            await this.subscribeToInvoice(
+              this.lnd,
+              foundInvoice.id,
+              invoice.bountyId
+            );
         }
       })
     );
   }
 
-  async subscribeToInvoice(lnd: AuthenticatedLnd, id: string) {
+  async subscribeToInvoice(
+    lnd: AuthenticatedLnd,
+    id: string,
+    bountyId: string
+  ) {
     const stream = lightning.subscribeToInvoice({ lnd, id });
     stream.on("invoice_updated", async (invoice) => {
       console.log({
@@ -151,7 +159,7 @@ class Lightning extends EventEmitter {
       if (invoice.is_held) {
         await db.updateInvoice(id, "HELD");
         await db.calculateBountyBalance(invoice.id);
-        this.emit(NodeEvents.invoicePaid, { hash: invoice.id });
+        this.emit(NodeEvents.invoicePaid, { hash: invoice.id, bountyId });
       }
       if (invoice.is_confirmed) await db.settlePayment(confirmed_at, id);
       if (invoice.is_canceled) await db.updateInvoice(id, "CANCELED");
