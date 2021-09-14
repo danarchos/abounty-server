@@ -57,6 +57,25 @@ class Supabase extends EventEmitter {
     return allNodes.find((node) => node.token === token);
   }
 
+  async getCompleteBounties() {
+    const { data } = await this.client
+      .from("bounties")
+      .select("*")
+      .match({ status: "COMPLETE" });
+
+    return data;
+  }
+
+  async getCompleteBounty(id: string) {
+    const { data } = await this.client
+      .from("bounties")
+      .select("*")
+      .match({ id })
+      .single();
+
+    return data;
+  }
+
   async getAllBounties() {
     const { data } = await this.client
       .from("bounties")
@@ -107,6 +126,7 @@ class Supabase extends EventEmitter {
 
   async createBounty(bounty: Bounty) {
     const { subject, speakers, tags, description, user } = bounty;
+    console.log({ user });
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -117,6 +137,22 @@ class Supabase extends EventEmitter {
       user,
     });
     return response;
+  }
+
+  async completeBounty(bountyId: string) {
+    const bounty = await this.getBounty(bountyId);
+    const balanceMinusFee = bounty.balance * 0.95;
+    const numberOfSpeakers = bounty.speakers.length;
+    const speakerPayout = Math.floor(balanceMinusFee / numberOfSpeakers);
+
+    const { data, error } = await this.client
+      .from("bounties")
+      .update({ speakerPayout, status: "COMPLETE" })
+      .match({ id: bountyId });
+
+    console.log({ data, error });
+
+    return data;
   }
 
   async getNode() {

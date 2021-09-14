@@ -8,7 +8,50 @@ import cron from "node-cron";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 import * as twitterRoutes from "./routes/twitterRoutes";
+
+const lnurl = require("lnurl");
+
+console.log({ lnurl });
+
 require("dotenv").config();
+
+const server = lnurl.createServer({
+  host: "192.168.1.4",
+  endpoint: "/lnurzzzzl",
+  port: 4000,
+
+  lightning: {
+    backend: "lnd",
+    config: {
+      hostname: process.env.HOST,
+      cert: { data: process.env.TLS_CERT },
+      macaroon: { data: process.env.MACAROON },
+    },
+  },
+});
+
+console.log({ server: server.generateNewUrl });
+
+const tag = "withdrawRequest";
+const params = {
+  minWithdrawable: 1,
+  defaultDescription: "testing",
+  callback: "http://192.168.1.4:4000/testing",
+  k1: "k1",
+  maxWithdrawable: 100,
+
+  // localAmt: 2000,
+  // pushAmt: 0,
+};
+server
+  .generateNewUrl(tag, params)
+  .then((result: any) => {
+    const { encoded, secret, url } = result;
+    console.log({ encoded, secret, url });
+  })
+  .catch((error: any) => {
+    console.error(error);
+  });
 
 const PORT: number = 4000;
 
@@ -44,13 +87,18 @@ export const catchAsyncErrors = (
   };
 };
 
+app.get("/testing", catchAsyncErrors(bountyRoutes.testing));
+
 //
 // Bounties
 //
 app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
 app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
+app.get("/rewards/:username", catchAsyncErrors(bountyRoutes.getRewards));
+app.get("/reward/:id", catchAsyncErrors(bountyRoutes.getReward));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 app.post("/update-speaker", catchAsyncErrors(bountyRoutes.updateSpeaker));
+app.post("/complete-bounty", catchAsyncErrors(bountyRoutes.completeBounty));
 
 //
 // LN Routes

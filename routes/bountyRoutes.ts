@@ -24,16 +24,61 @@ export const allBounties = async (req: Request, res: Response) => {
   res.send(bounties);
 };
 
+export const testing = (req: Request, res: Response) => {
+  console.log("test");
+  res.send({ ok: "hey" });
+};
+
 export const bounty = async (req: Request, res: Response) => {
   const { id } = req.params;
   const bounty = await db.getBounty(id);
   res.send(bounty);
 };
 
+export const completeBounty = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  const bounty = await db.completeBounty(id);
+  res.send(bounty);
+};
+
 export const updateSpeaker = async (req: Request, res: Response) => {
-  console.log("hit");
   const { speakers, userId, bountyId } = req.body;
   const updated = await db.updateSpeaker(speakers, userId, bountyId);
-  console.log({ updated });
   res.send(updated);
+};
+
+export const getRewards = async (req: Request, res: Response) => {
+  const { username } = req.params;
+
+  const response = await db.getCompleteBounties();
+  if (response) {
+    const filterByUser = response.filter((bounty) => {
+      const userInBounty = bounty.speakers.find(
+        (speaker: any) => speaker.username === username
+      );
+
+      if (userInBounty) return true;
+      return false;
+    });
+    res.send(filterByUser);
+  }
+};
+
+export const getReward = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const response = await db.getCompleteBounty(id);
+
+  res.send(response);
+  // if (response) {
+  //   const filterByUser = response.filter((bounty) => {
+  //     const userInBounty = bounty.speakers.find(
+  //       (speaker: any) => speaker.username === username
+  //     );
+
+  //     if (userInBounty) return true;
+  //     return false;
+  //   });
+  //   res.send(filterByUser);
+  // }
 };
