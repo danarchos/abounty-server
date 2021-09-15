@@ -15,9 +15,9 @@ const lnurl = require("lnurl");
 require("dotenv").config();
 
 const server = lnurl.createServer({
-  host: "192.168.1.6",
+  host: "localhost",
   port: 4001,
-
+  url: "http://244e-92-2-206-252.ngrok.io",
   lightning: {
     backend: "lnd",
     config: {
@@ -32,27 +32,13 @@ const tag = "withdrawRequest";
 const params = {
   minWithdrawable: 1,
   defaultDescription: "testing",
-  // callback: "http://192.168.1.4:4000/testing",
-  k1: "k1",
   maxWithdrawable: 100,
-
-  // localAmt: 2000,
-  // pushAmt: 0,
 };
 server
   .generateNewUrl(tag, params)
   .then((result: any) => {
     const { encoded, secret, url } = result;
-    console.log({ encode: lnurl.encode(url) });
     console.log({ encoded, secret, url });
-
-    let words = bech32.toWords(
-      Buffer.from(
-        "https://service.com/api?q=3fc3645b439ce8e7f2553a69e5267081d96dcd340693afabe04be7b0ccd178df",
-        "utf8"
-      )
-    );
-    console.log("bech32", bech32.encode("lnurl", words));
   })
   .catch((error: any) => {
     console.error(error);
