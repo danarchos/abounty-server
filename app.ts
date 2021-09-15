@@ -8,17 +8,15 @@ import cron from "node-cron";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 import * as twitterRoutes from "./routes/twitterRoutes";
+let { bech32, bech32m } = require("bech32");
 
 const lnurl = require("lnurl");
-
-console.log({ lnurl });
 
 require("dotenv").config();
 
 const server = lnurl.createServer({
-  host: "192.168.1.4",
-  endpoint: "/lnurzzzzl",
-  port: 4000,
+  host: "192.168.1.6",
+  port: 4001,
 
   lightning: {
     backend: "lnd",
@@ -30,13 +28,11 @@ const server = lnurl.createServer({
   },
 });
 
-console.log({ server: server.generateNewUrl });
-
 const tag = "withdrawRequest";
 const params = {
   minWithdrawable: 1,
   defaultDescription: "testing",
-  callback: "http://192.168.1.4:4000/testing",
+  // callback: "http://192.168.1.4:4000/testing",
   k1: "k1",
   maxWithdrawable: 100,
 
@@ -47,7 +43,16 @@ server
   .generateNewUrl(tag, params)
   .then((result: any) => {
     const { encoded, secret, url } = result;
+    console.log({ encode: lnurl.encode(url) });
     console.log({ encoded, secret, url });
+
+    let words = bech32.toWords(
+      Buffer.from(
+        "https://service.com/api?q=3fc3645b439ce8e7f2553a69e5267081d96dcd340693afabe04be7b0ccd178df",
+        "utf8"
+      )
+    );
+    console.log("bech32", bech32.encode("lnurl", words));
   })
   .catch((error: any) => {
     console.error(error);
