@@ -11,45 +11,6 @@ import * as twitterRoutes from "./routes/twitterRoutes";
 
 require("dotenv").config();
 
-// const server = lnurl.createServer({
-//   host: "localhost",
-//   port: 4001,
-//   url: "https://f17e-92-2-206-252.ngrok.io",
-//   // endpoint: "/tester",
-//   lightning: {
-//     backend: "lnd",
-//     config: {
-//       hostname: process.env.HOST,
-//       cert: { data: process.env.TLS_CERT },
-//       macaroon: { data: process.env.MACAROON },
-//     },
-//   },
-// });
-
-// const tag = "withdrawRequest";
-// const params = {
-//   minWithdrawable: 1,
-//   defaultDescription: "tester",
-//   maxWithdrawable: 100,
-//   k1: "k1",
-//   callback: "https://d133-148-252-128-171.ngrok.io/testing",
-// };
-
-// server
-//   .generateNewUrl(tag, params)
-//   .then((result: any) => {
-//     const { encoded, secret, url } = result;
-//     console.log({ encoded, secret, url });
-
-//     const secret2 = randomBytes(32).toString("hex");
-//     const hash = createHash("sha256").update(secret2).digest("hex");
-
-//     console.log({ secret2, hash });
-//   })
-//   .catch((error: any) => {
-//     console.error(error);
-//   });
-
 const PORT: number = 4000;
 
 const { app } = expressWs(express());

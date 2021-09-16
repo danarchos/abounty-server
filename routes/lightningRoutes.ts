@@ -26,7 +26,6 @@ export const getInfo = async (req: Request, res: Response) => {
 };
 
 export const createBountyInvoice = async (req: Request, res: Response) => {
-  console.log("hit");
   const { amount, userId, bountyId, username } = req.body;
   const lnd = ln.getLnd();
 
@@ -176,6 +175,7 @@ export const initiateWithdrawal = async (req: Request, res: Response) => {
     const secondLevelNonce = Math.floor(Math.random() * 1000000).toString();
     const k1Hash = createHash("sha256").update(secondLevelNonce).digest("hex");
     ln.setLnurlk1(k1Hash, "123e4567-e89b-12d3-a456-426614174000");
+    ln.deleteSecretRecord(secret);
     res.json({
       callback: process.env.NGROK_INSTANCE_URL + "/execute-withdrawal",
       minWithdrawable: 1,
@@ -189,10 +189,16 @@ export const initiateWithdrawal = async (req: Request, res: Response) => {
 };
 
 export const executeWithdrawal = async (req: Request, res: Response) => {
-  // check k1 secret matches
-  // pay the invoice
-  // send a good response
-  const { pr } = req.query;
-  console.log("hit execute", pr);
-  res.json({ status: "ERROR", reason: "Yeah boi" });
+  const { pr, k1 } = req.query;
+  if (!pr || !k1) {
+    res.json({ status: "ERROR", reason: "Invalid pr or k1" });
+    return;
+  }
+  const k1Hash = createHash("sha256").update(k1.toString()).digest("hex");
+  const storedk1 = ln.getlnUrlk1(k1Hash);
+  if (storedk1) {
+    // pay invoice
+    ln.deletek1Record(k1Hash);
+    // send response
+  }
 };
