@@ -6,6 +6,7 @@ import ByteBuffer from "bytebuffer";
 import * as lightning from "lightning";
 import sha, { sha256 } from "js-sha256";
 import moment from "moment";
+import { bech32 } from "bech32";
 
 /**
  * POST /api/connect
@@ -140,4 +141,58 @@ export const createInvoice = async (req: Request, res: Response) => {
     hash: inv.id,
     amount: inv.tokens,
   });
+};
+
+export const withdrawRequest = async (req: Request, res: Response) => {
+  const nonce = Math.floor(Math.random() * 1000000).toString();
+
+  let url = bech32.toWords(
+    Buffer.from(
+      process.env.NGROK_INSTANCE_URL + "/initiate-withdrawal?q=" + nonce,
+      "utf8"
+    )
+  );
+
+  const encodedUrl = bech32.encode("LNURL", url, 1028).toLocaleUpperCase();
+
+  const secret = createHash("sha256").update(nonce).digest("hex");
+
+  ln.setLnurlSecret(secret, "123e4567-e89b-12d3-a456-426614174000");
+
+  res.send({ withdrawRequest: encodedUrl });
+};
+
+export const initiateWithdrawal = async (req: Request, res: Response) => {
+  const { q } = req.query;
+
+  if (!q) {
+    res.send({ success: false, message: "Missing query" });
+    return;
+  }
+
+  const secret = createHash("sha256").update(q.toString()).digest("hex");
+  const storedSecret = ln.getLnurlSecret(secret);
+  if (storedSecret) {
+    const secondLevelNonce = Math.floor(Math.random() * 1000000).toString();
+    const k1Hash = createHash("sha256").update(secondLevelNonce).digest("hex");
+    ln.setLnurlk1(k1Hash, "123e4567-e89b-12d3-a456-426614174000");
+    res.json({
+      callback: process.env.NGROK_INSTANCE_URL + "/execute-withdrawal",
+      minWithdrawable: 1,
+      k1: secondLevelNonce,
+      maxWithdrawable: 2000, // msat
+      defaultDescription: "withdraw from abounty",
+      tag: "withdrawRequest",
+    });
+  }
+  res.send({ success: false, message: "No matching secret" });
+};
+
+export const executeWithdrawal = async (req: Request, res: Response) => {
+  // check k1 secret matches
+  // pay the invoice
+  // send a good response
+  const { pr } = req.query;
+  console.log("hit execute", pr);
+  res.json({ status: "ERROR", reason: "Yeah boi" });
 };

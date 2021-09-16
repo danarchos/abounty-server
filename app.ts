@@ -8,51 +8,47 @@ import cron from "node-cron";
 import * as lnRoutes from "./routes/lightningRoutes";
 import * as bountyRoutes from "./routes/bountyRoutes";
 import * as twitterRoutes from "./routes/twitterRoutes";
-import { createHash, randomBytes } from "crypto";
-let { bech32, bech32m } = require("bech32");
-
-const lnurl = require("lnurl");
 
 require("dotenv").config();
 
-const server = lnurl.createServer({
-  host: "localhost",
-  port: 4001,
-  url: "https://7f14-148-252-128-171.ngrok.io",
-  // endpoint: "/tester",
-  lightning: {
-    backend: "lnd",
-    config: {
-      hostname: process.env.HOST,
-      cert: { data: process.env.TLS_CERT },
-      macaroon: { data: process.env.MACAROON },
-    },
-  },
-});
+// const server = lnurl.createServer({
+//   host: "localhost",
+//   port: 4001,
+//   url: "https://f17e-92-2-206-252.ngrok.io",
+//   // endpoint: "/tester",
+//   lightning: {
+//     backend: "lnd",
+//     config: {
+//       hostname: process.env.HOST,
+//       cert: { data: process.env.TLS_CERT },
+//       macaroon: { data: process.env.MACAROON },
+//     },
+//   },
+// });
 
-const tag = "withdrawRequest";
-const params = {
-  minWithdrawable: 1,
-  defaultDescription: "tester",
-  maxWithdrawable: 100,
-  k1: "k1",
-  callback: "https://d133-148-252-128-171.ngrok.io/testing",
-};
+// const tag = "withdrawRequest";
+// const params = {
+//   minWithdrawable: 1,
+//   defaultDescription: "tester",
+//   maxWithdrawable: 100,
+//   k1: "k1",
+//   callback: "https://d133-148-252-128-171.ngrok.io/testing",
+// };
 
-server
-  .generateNewUrl(tag, params)
-  .then((result: any) => {
-    const { encoded, secret, url } = result;
-    console.log({ encoded, secret, url });
+// server
+//   .generateNewUrl(tag, params)
+//   .then((result: any) => {
+//     const { encoded, secret, url } = result;
+//     console.log({ encoded, secret, url });
 
-    const secret2 = randomBytes(32).toString("hex");
-    const hash = createHash("sha256").update(secret2).digest("hex");
+//     const secret2 = randomBytes(32).toString("hex");
+//     const hash = createHash("sha256").update(secret2).digest("hex");
 
-    console.log({ secret2, hash });
-  })
-  .catch((error: any) => {
-    console.error(error);
-  });
+//     console.log({ secret2, hash });
+//   })
+//   .catch((error: any) => {
+//     console.error(error);
+//   });
 
 const PORT: number = 4000;
 
@@ -112,6 +108,10 @@ app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
 app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
 app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
 app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
+
+app.get("/withdraw-request", catchAsyncErrors(lnRoutes.withdrawRequest));
+app.get("/initiate-withdrawal", catchAsyncErrors(lnRoutes.initiateWithdrawal));
+app.get("/execute-withdrawal", catchAsyncErrors(lnRoutes.executeWithdrawal));
 
 // Twitter routes
 app.get("/usernames", catchAsyncErrors(twitterRoutes.usernames));

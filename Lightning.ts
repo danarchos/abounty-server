@@ -6,12 +6,17 @@ import db from "./Supabase";
 import * as lightning from "lightning";
 import { AuthenticatedLnd } from "lightning";
 import moment from "moment";
+import { Hash } from "crypto";
 
 export const NodeEvents = {
   invoiceUpdated: "invoice-updated",
   invoicePaid: "invoice-paid",
   bountyCreated: "bounty-created",
 };
+
+interface Hashmap {
+  [hash: string]: string;
+}
 
 class Lightning extends EventEmitter {
   /**
@@ -20,6 +25,8 @@ class Lightning extends EventEmitter {
    * in memory for the lifetime of the server.
    */
   private lnd: AuthenticatedLnd | null = null;
+  private lnurlSecretMap: Record<string, string> = {};
+  private lnurlK1: Record<string, string> = {};
   public pubkey: string | null = null;
   // private routerRpc: RouterRpc | null = null;
 
@@ -32,6 +39,28 @@ class Lightning extends EventEmitter {
     }
 
     return this.lnd;
+  }
+
+  setLnurlSecret(hash: string, user: string) {
+    this.lnurlSecretMap[hash] = user;
+  }
+
+  setLnurlk1(k1: string, user: string) {
+    this.lnurlK1[k1] = user;
+  }
+
+  getLnurlSecret(hash: string) {
+    const secret = this.lnurlSecretMap[hash];
+
+    if (secret) return secret;
+    return null;
+  }
+
+  getlnUrlk1(k1: string) {
+    const k1Record = this.lnurlK1[k1];
+
+    if (k1Record) return k1Record;
+    return null;
   }
 
   /**
