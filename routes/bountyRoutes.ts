@@ -19,8 +19,8 @@ export const createBounty = async (req: Request, res: Response) => {
   res.send({ allBounties: response.body });
 };
 
-export const allBounties = async (req: Request, res: Response) => {
-  const bounties = await db.getAllBounties();
+export const liveBounties = async (req: Request, res: Response) => {
+  const bounties = await db.getLiveBounties();
   res.send(bounties);
 };
 

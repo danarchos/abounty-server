@@ -76,11 +76,11 @@ class Supabase extends EventEmitter {
     return data;
   }
 
-  async getAllBounties() {
+  async getLiveBounties() {
     const { data } = await this.client
       .from("bounties")
       .select("*")
-      .not("status", "eq", "EXPIRED");
+      .match({ status: "OPEN" });
     if (!data) return [];
     return data;
   }

@@ -50,7 +50,7 @@ app.get("/testing", catchAsyncErrors(bountyRoutes.testing));
 //
 // Bounties
 //
-app.get("/bounties", catchAsyncErrors(bountyRoutes.allBounties));
+app.get("/live-bounties", catchAsyncErrors(bountyRoutes.liveBounties));
 app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
 app.get("/rewards/:username", catchAsyncErrors(bountyRoutes.getRewards));
 app.get("/reward/:id", catchAsyncErrors(bountyRoutes.getReward));
