@@ -4,9 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
 import db from "./Supabase";
 import * as lightning from "lightning";
-import { AuthenticatedLnd } from "lightning";
-import moment from "moment";
-import { Hash } from "crypto";
+import { AuthenticatedLnd, payViaPaymentRequest } from "lightning";
 
 export const NodeEvents = {
   invoiceUpdated: "invoice-updated",
@@ -174,6 +172,13 @@ class Lightning extends EventEmitter {
         }
       })
     );
+  }
+
+  async payInvoice(request: string) {
+    if (this.lnd) {
+      const response = await payViaPaymentRequest({ lnd: this.lnd, request });
+      return response;
+    }
   }
 
   async subscribeToInvoice(

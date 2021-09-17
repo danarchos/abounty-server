@@ -2,9 +2,7 @@ import { Request, Response } from "express";
 import ln, { NodeEvents } from "../Lightning";
 import db from "../Supabase";
 import { createHash, randomBytes } from "crypto";
-import ByteBuffer from "bytebuffer";
 import * as lightning from "lightning";
-import sha, { sha256 } from "js-sha256";
 import moment from "moment";
 import { bech32 } from "bech32";
 
@@ -180,10 +178,11 @@ export const initiateWithdrawal = async (req: Request, res: Response) => {
       callback: process.env.NGROK_INSTANCE_URL + "/execute-withdrawal",
       minWithdrawable: 1,
       k1: secondLevelNonce,
-      maxWithdrawable: 2000, // msat
+      maxWithdrawable: 200000, // msat
       defaultDescription: "withdraw from abounty",
       tag: "withdrawRequest",
     });
+    return;
   }
   res.send({ success: false, message: "No matching secret" });
 };
@@ -197,8 +196,8 @@ export const executeWithdrawal = async (req: Request, res: Response) => {
   const k1Hash = createHash("sha256").update(k1.toString()).digest("hex");
   const storedk1 = ln.getlnUrlk1(k1Hash);
   if (storedk1) {
-    // pay invoice
     ln.deletek1Record(k1Hash);
-    // send response
+    ln.payInvoice(pr as string);
+    res.send({ success: true });
   }
 };
