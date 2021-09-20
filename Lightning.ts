@@ -126,6 +126,16 @@ class Lightning extends EventEmitter {
     }
   }
 
+  async cancelHodl(id: string) {
+    if (!this.lnd) return null;
+    console.log({ id });
+    const response = await lightning.cancelHodlInvoice({
+      id,
+      lnd: this.lnd,
+    });
+    return response;
+  }
+
   // TEST THIS PROPERLY
   async syncInvoices(lnd: AuthenticatedLnd) {
     const invoiceDetails = await lightning.getInvoices({ lnd });

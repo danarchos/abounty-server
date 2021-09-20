@@ -67,17 +67,15 @@ export const createBountyInvoice = async (req: Request, res: Response) => {
 
 export const cancelInvoice = async (req: Request, res: Response) => {
   const { id } = req.body;
-  const lnd = ln.getLnd();
 
   try {
-    await lightning.cancelHodlInvoice({
-      id,
-      lnd,
-    });
-    await db.updateInvoice(id, "CANCELED");
-    res.send({
-      message: "Successfully cancelled hodl invoice",
-    });
+    const cancelResponse = await ln.cancelHodl(id);
+    if (cancelResponse) {
+      await db.updateInvoice(id, "CANCELED");
+      res.send({
+        message: "Successfully cancelled hodl invoice",
+      });
+    }
   } catch (err) {
     console.log({ err });
     res.send({

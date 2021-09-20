@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import db from "../Supabase";
+import ln, { NodeEvents } from "../Lightning";
 
 export const createBounty = async (req: Request, res: Response) => {
   const { user, description, subject, speakers, tags } = req.body;
@@ -27,6 +28,23 @@ export const liveBounties = async (req: Request, res: Response) => {
 export const testing = (req: Request, res: Response) => {
   console.log("test");
   res.send({ ok: "hey" });
+};
+
+export const expireBounty = async (req: Request, res: Response) => {
+  const { id } = req.body;
+
+  const payments = await db.getPaymentsFromBounty(id);
+
+  Promise.all(
+    payments.map(
+      async (invoice) =>
+        await ln
+          .cancelHodl(invoice.hash)
+          .then((response) => console.log("rez", response))
+    )
+  );
+  // const response = awsait db.expireBounty(id);
+  // res.send(response);
 };
 
 export const bounty = async (req: Request, res: Response) => {

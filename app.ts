@@ -57,6 +57,7 @@ app.get("/reward/:id", catchAsyncErrors(bountyRoutes.getReward));
 app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
 app.post("/update-speaker", catchAsyncErrors(bountyRoutes.updateSpeaker));
 app.post("/complete-bounty", catchAsyncErrors(bountyRoutes.completeBounty));
+app.post("/expire-bounty", catchAsyncErrors(bountyRoutes.expireBounty));
 
 //
 // LN Routes
@@ -82,7 +83,7 @@ app.post("/connect", catchAsyncErrors(lnRoutes.connect));
 // app.get("/info", catchAsyncErrors(lnRoutes.getInfo));
 
 cron.schedule("* * * * *", async () => {
-  await db.expireBounties();
+  // await db.expireBounties();
 });
 
 //

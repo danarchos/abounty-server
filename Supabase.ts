@@ -104,6 +104,16 @@ class Supabase extends EventEmitter {
     return data;
   }
 
+  async getPaymentsFromBounty(bountyId: string) {
+    const { data } = await this.client
+      .from("payments")
+      .select("*")
+      .match({ bountyId });
+    if (!data) return [];
+    console.log({ data });
+    return data;
+  }
+
   async getAllExpiredBounties() {
     const currentTime = moment().unix();
     const { data } = await this.client
@@ -111,6 +121,16 @@ class Supabase extends EventEmitter {
       .select("id")
       .lte("expiry", currentTime);
     if (!data) return [];
+    return data;
+  }
+
+  async expireBounty(id: string) {
+    console.log("called expire on", id);
+    const { data } = await this.client
+      .from("bounties")
+      .update({ status: "EXPIRED" })
+      .match({ id });
+    console.log({ data });
     return data;
   }
 
