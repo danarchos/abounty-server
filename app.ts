@@ -49,6 +49,8 @@ app.post("/expire-bounty", catchAsyncErrors(bountyRoutes.expireBounty));
 //
 // LN Routes
 //
+app.post("/connect", catchAsyncErrors(lnRoutes.connect));
+
 app.post(
   "/create-bounty-invoice",
   catchAsyncErrors(lnRoutes.createBountyInvoice)
@@ -65,12 +67,7 @@ app.get("/execute-withdrawal", catchAsyncErrors(lnRoutes.executeWithdrawal));
 // Twitter routes
 app.get("/usernames", catchAsyncErrors(twitterRoutes.usernames));
 
-// from example app
-app.post("/connect", catchAsyncErrors(lnRoutes.connect));
-
 app.ws("/events", (ws, req) => {
-  console.log("called ws connection");
-
   const bountyToListenTo = req.query.bountyId;
 
   const paymentsListener = (info: any) => {
