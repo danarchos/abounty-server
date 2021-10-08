@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { createClient } from "@supabase/supabase-js";
 import moment from "moment";
-import { error } from "console";
 require("dotenv").config();
 
 const url = process.env.SUPABASE_URL ?? "";
@@ -35,7 +34,6 @@ export interface Payment {
   expiry: number | undefined;
 }
 
-// Can use EventEmitter in future to emit an event.
 class Supabase extends EventEmitter {
   private client = createClient(url, key);
 
@@ -110,7 +108,6 @@ class Supabase extends EventEmitter {
       .select("*")
       .match({ bountyId });
     if (!data) return [];
-    console.log({ data });
     return data;
   }
 
@@ -125,12 +122,10 @@ class Supabase extends EventEmitter {
   }
 
   async expireBounty(id: string) {
-    console.log("called expire on", id);
     const { data } = await this.client
       .from("bounties")
       .update({ status: "EXPIRED" })
       .match({ id });
-    console.log({ data });
     return data;
   }
 
@@ -146,7 +141,6 @@ class Supabase extends EventEmitter {
 
   async createBounty(bounty: Bounty) {
     const { subject, speakers, tags, description, user } = bounty;
-    console.log({ user });
     const response = await this.client.from("bounties").insert({
       subject,
       speakers,
@@ -169,8 +163,6 @@ class Supabase extends EventEmitter {
       .from("bounties")
       .update({ speakerPayout, status: "COMPLETE" })
       .match({ id: bountyId });
-
-    console.log({ data, error });
 
     return data;
   }
@@ -217,7 +209,6 @@ class Supabase extends EventEmitter {
       if (response.error) {
         new Error("Whopps");
       }
-      console.log({ response });
       return response;
     } catch (err) {
       console.log({ err });
@@ -225,7 +216,6 @@ class Supabase extends EventEmitter {
   }
 
   async updateSpeaker(speakers: any, userId: string, bountyId: string) {
-    console.log({ speakers, userId, bountyId });
     const speaker = speakers.find((item: any) => (item.userId = userId));
     const speakerIndex = speakers.indexOf(speaker);
     const newSpeakers = speakers;
@@ -236,8 +226,6 @@ class Supabase extends EventEmitter {
       .update({ speakers })
       .match({ id: bountyId });
 
-    console.log({ data });
-
     return data;
   }
 
@@ -246,8 +234,6 @@ class Supabase extends EventEmitter {
       .from("payments")
       .update({ status: "SETTLED", settleDate: date })
       .match({ hash });
-
-    console.log({ data, error });
   }
 
   async calculateBountyBalance(hash: string) {

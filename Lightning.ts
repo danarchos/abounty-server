@@ -1,6 +1,4 @@
-import createLnRpc, { createRouterRpc, LnRpc, RouterRpc } from "@radar/lnrpc";
 import { EventEmitter } from "events";
-import { v4 as uuidv4 } from "uuid";
 import { LndNode } from "./Supabase";
 import db from "./Supabase";
 import * as lightning from "lightning";
@@ -12,25 +10,12 @@ export const NodeEvents = {
   bountyCreated: "bounty-created",
 };
 
-interface Hashmap {
-  [hash: string]: string;
-}
-
 class Lightning extends EventEmitter {
-  /**
-   * a mapping of token to gRPC connection. This is an optimization to
-   * avoid calling `createLnRpc` on every request. Instead, the object is kept
-   * in memory for the lifetime of the server.
-   */
   private lnd: AuthenticatedLnd | null = null;
   private lnurlSecretMap: Record<string, string> = {};
   private lnurlK1Map: Record<string, string> = {};
   public pubkey: string | null = null;
-  // private routerRpc: RouterRpc | null = null;
 
-  /**
-   * Retrieves the in-memory connection to an LND node
-   */
   getLnd(): AuthenticatedLnd {
     if (!this.lnd) {
       throw new Error("Not Authorized. You must login first!");
@@ -68,9 +53,6 @@ class Lightning extends EventEmitter {
     delete this.lnurlSecretMap[secret];
   }
 
-  /**
-   * Tests the LND node connection by validating that we can get the node's info
-   */
   async connect() {
     try {
       const { lnd } = await lightning.authenticatedLndGrpc({
@@ -80,21 +62,17 @@ class Lightning extends EventEmitter {
 
       const msg = Buffer.from("authorization test").toString("base64");
 
-      // Verifiy I can sign a message
       await lightning.signMessage({
         lnd,
         message: msg,
       });
 
-      // Get the public key
       const { public_key } = await lightning.getIdentity({ lnd });
       this.syncInvoices(lnd);
       console.log("connected lnd");
 
       this.lnd = lnd;
       this.pubkey = public_key;
-
-      // this.listenForPayments(lnd, public_key);
     } catch (err) {
       console.log({ err });
     }
@@ -115,8 +93,6 @@ class Lightning extends EventEmitter {
       return;
     }
 
-    // const { host, token } = node;
-    // console.log({ host, token });
     try {
       console.log(`Reconnecting to LND node ${host}`);
       await this.connect();
@@ -136,7 +112,6 @@ class Lightning extends EventEmitter {
     return response;
   }
 
-  // TEST THIS PROPERLY
   async syncInvoices(lnd: AuthenticatedLnd) {
     const invoiceDetails = await lightning.getInvoices({ lnd });
     const pendingHeldInvoices = await db.getAllPendingAndHeldInvoices();
@@ -216,28 +191,6 @@ class Lightning extends EventEmitter {
       if (invoice.is_canceled) await db.updateInvoice(id, "CANCELED");
     });
   }
-
-  /*
-  SUBSCRIBE TO ALL INVOICES
-   * listen for payments made to the node. When a payment is settled, emit
-   * the `invoicePaid` event to notify listeners of the NodeManager
-   */
-  // async listenForPayments(lnd: AuthenticatedLnd, pubkey: string) {
-  //   const stream = lightning.subscribeToInvoices({ lnd });
-  //   stream.on("status", (invoice) => {
-  //     console.log({ STATUS_UPDATE: invoice });
-  //   });
-  //   stream.on("invoice_updated", (invoice) => {
-  //     console.log({ invoice_updated: invoice });
-  //     const { confirmed_at, tokens, id } = invoice;
-  //     if (invoice.is_confirmed) db.confirmPayment(confirmed_at, id);
-  //     this.emit(NodeEvents.invoiceUpdated, {
-  //       hash: id,
-  //       amount: tokens,
-  //       pubkey,
-  //     });
-  //   });
-  // }
 }
 
 export default new Lightning();
