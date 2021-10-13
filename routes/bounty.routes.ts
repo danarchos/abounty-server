@@ -1,5 +1,5 @@
 import { Router } from "express";
-import BountyController from "./controllers/bounty";
+import BountyController from "../controllers/bounty";
 
 const bountyRoutes = Router();
 

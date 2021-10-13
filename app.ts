@@ -1,12 +1,10 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import expressWs from "express-ws";
 import cors from "cors";
 import { SocketEvents } from "./types";
 import ln, { NodeEvents } from "./Lightning";
 import db from "./Supabase";
-import * as lnRoutes from "./routes/lightningRoutes";
-import * as bountyRoutes from "./routes/bountyRoutes";
-import * as twitterRoutes from "./routes/twitterRoutes";
+import { router } from "./routes";
 
 require("dotenv").config();
 
@@ -21,51 +19,7 @@ app.use((req, res, next) => {
   next();
 });
 
-export const catchAsyncErrors = (
-  routeHandler: (req: Request, res: Response) => Promise<void> | void
-) => {
-  return async (req: Request, res: Response) => {
-    try {
-      const promise = routeHandler(req, res);
-      if (promise) await promise;
-    } catch (err) {
-      res.status(400).send({ error: err.message });
-    }
-  };
-};
-
-//
-// Bounties
-//
-app.get("/live-bounties", catchAsyncErrors(bountyRoutes.liveBounties));
-app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
-app.get("/rewards/:username", catchAsyncErrors(bountyRoutes.getRewards));
-app.get("/reward/:id", catchAsyncErrors(bountyRoutes.getReward));
-app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
-app.post("/update-speaker", catchAsyncErrors(bountyRoutes.updateSpeaker));
-app.post("/complete-bounty", catchAsyncErrors(bountyRoutes.completeBounty));
-app.post("/expire-bounty", catchAsyncErrors(bountyRoutes.expireBounty));
-
-//
-// LN Routes
-//
-app.post("/connect", catchAsyncErrors(lnRoutes.connect));
-
-app.post(
-  "/create-bounty-invoice",
-  catchAsyncErrors(lnRoutes.createBountyInvoice)
-);
-app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
-app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
-app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
-app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
-
-app.get("/withdraw-request", catchAsyncErrors(lnRoutes.withdrawRequest));
-app.get("/initiate-withdrawal", catchAsyncErrors(lnRoutes.initiateWithdrawal));
-app.get("/execute-withdrawal", catchAsyncErrors(lnRoutes.executeWithdrawal));
-
-// Twitter routes
-app.get("/usernames", catchAsyncErrors(twitterRoutes.usernames));
+app.use(router);
 
 app.ws("/events", (ws, req) => {
   const bountyToListenTo = req.query.bountyId;
@@ -91,3 +45,36 @@ app.listen(PORT, async () => {
   const allNodes = await db.getAllSupaNodes();
   await ln.reconnectNode(allNodes);
 });
+
+//
+// // Bounties
+// //
+// app.get("/live-bounties", catchAsyncErrors(bountyRoutes.liveBounties));
+// app.get("/bounty/:id", catchAsyncErrors(bountyRoutes.bounty));
+// app.get("/rewards/:username", catchAsyncErrors(bountyRoutes.getRewards));
+// app.get("/reward/:id", catchAsyncErrors(bountyRoutes.getReward));
+// app.post("/create-bounty", catchAsyncErrors(bountyRoutes.createBounty));
+// app.post("/update-speaker", catchAsyncErrors(bountyRoutes.updateSpeaker));
+// app.post("/complete-bounty", catchAsyncErrors(bountyRoutes.completeBounty));
+// app.post("/expire-bounty", catchAsyncErrors(bountyRoutes.expireBounty));
+
+// //
+// // LN Routes
+// //
+// app.post("/connect", catchAsyncErrors(lnRoutes.connect));
+
+// app.post(
+//   "/create-bounty-invoice",
+//   catchAsyncErrors(lnRoutes.createBountyInvoice)
+// );
+// app.post("/create-invoice", catchAsyncErrors(lnRoutes.createInvoice));
+// app.post("/cancel-invoice", catchAsyncErrors(lnRoutes.cancelInvoice));
+// app.post("/settle-invoice", catchAsyncErrors(lnRoutes.settleInvoice));
+// app.get("/get-invoice", catchAsyncErrors(lnRoutes.getInvoice));
+
+// app.get("/withdraw-request", catchAsyncErrors(lnRoutes.withdrawRequest));
+// app.get("/initiate-withdrawal", catchAsyncErrors(lnRoutes.initiateWithdrawal));
+// app.get("/execute-withdrawal", catchAsyncErrors(lnRoutes.executeWithdrawal));
+
+// // Twitter routes
+// app.get("/usernames", catchAsyncErrors(twitterRoutes.usernames));

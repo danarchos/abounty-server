@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import db from "../../Supabase";
-import ln from "../../Lightning";
+import db from "../Supabase";
+import ln from "../Lightning";
 
 class BountyController {
   liveBounties = async (req: Request, res: Response) => {
